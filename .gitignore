@@ -1,0 +1,11 @@
+# Laravel app (dentro de /amazing)
+amazing/vendor/
+amazing/node_modules/
+amazing/public/build/
+amazing/storage/*.key
+amazing/storage/logs/
+amazing/storage/framework/cache/
+amazing/storage/framework/sessions/
+amazing/storage/framework/views/
+amazing/.env
+amazing/.env.*

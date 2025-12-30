@@ -1,23 +1,32 @@
-```md
-# Amazing — Hub Vaapty (pré-projeto)
+# Amazing — Hub Vaapty (protótipo UI)
 
 **Codename interno:** Amazing  
-**Cliente:** Vaapty (intermediação de vendas de veículos)  
-**Status:** UI-only — protótipo visual (sem banco e sem regras reais)
+**Empresa:** Vaapty  
+**Domínio:** Intermediação de vendas de veículos  
+**Status:** Protótipo **UI-only** (visual + navegação — sem banco e sem regras reais)  
+**Stack:** **Laravel + Blade + Tailwind + Vite** (dev local via **Herd**)
 
-Este repositório inicia o **Hub Vaapty**, uma central interna para módulos como **Comercial**, **Financeiro** e **Central/Franchising**.  
-Nesta fase, o foco é **estrutura + layout + navegação**, preparando terreno para evoluir com segurança e escala.
+O **Amazing** é o início de um **hub interno** para concentrar ferramentas por área (ex.: **Comercial**, **Financeiro**, **Central/Franchising**).  
+Nesta fase, o foco é **estrutura visual + layout + navegação**, preparando terreno pra evoluir com segurança e escala.
+
+---
+
+## Links rápidos (docs)
+- `docs/overview.md` — visão do projeto e escopo
+- `docs/arquitetura.md` — padrões e estrutura
+- `docs/roadmap.md` — fases e definição de pronto (DoD)
 
 ---
 
 ## Escopo da fase atual (UI-only)
 
 ### O que existe hoje
-- Layout base (sidebar + header)
+- Layout base (sidebar + header + content)
 - Rotas e páginas placeholder por módulo
 - Estrutura organizada para crescimento (módulos, views e docs)
+- Mocks visuais (tabelas/listas/gráficos fake)
 
-### O que NÃO faz parte desta fase
+### O que **não** faz parte desta fase
 - Autenticação, permissões e hierarquia real
 - Banco de dados / CRUD real
 - Integrações externas
@@ -25,154 +34,103 @@ Nesta fase, o foco é **estrutura + layout + navegação**, preparando terreno p
 
 ---
 
-## Stack
-- **Backend/Views:** Laravel (PHP) + Blade
-- **UI:** Tailwind CSS
-- **Assets:** Vite (Node.js)
-- **Dev local (Windows):** Laravel Herd
-
----
-
-## Estrutura do repositório
-
-```
-
-docs/                  # documentação do projeto (produto + decisões)
-overview.md
-arquitetura.md
-roadmap.md
-
-amazing/               # aplicação Laravel (código principal)
-app/
-routes/
-resources/
-...
-
-````
-
----
-
 ## Rodar local (Windows com Herd) — fluxo recomendado
+
+### Pré-requisitos
+- PHP compatível com Laravel
+- Composer
+- Node.js + npm
+- Laravel Herd (Windows)
 
 ### 1) Instalar dependências
 ```bash
 cd amazing
 composer install
 npm install
-````
-
-### 2) Configurar `.env`
-
-```bash
+2) Configurar .env
+bash
+Copiar código
 copy .env.example .env
 php artisan key:generate
-```
+Ajustes recomendados no .env (Herd):
 
-Ajuste recomendado no `.env` (Herd):
-
-```env
+env
+Copiar código
 APP_URL=http://amazing.test
 SESSION_DRIVER=file
-```
+Se aparecer erro do Vite/manifest, garanta que o npm run dev está rodando.
+Em último caso, você pode setar: VITE_DEV_SERVER_URL=http://localhost:5173
 
-> Se aparecer erro do Vite/manifest, garanta que o `npm run dev` está rodando.
-> Em último caso, você pode setar:
-> `VITE_DEV_SERVER_URL=http://localhost:5173`
-
-### 3) Subir assets (deixe rodando)
-
-```bash
+3) Subir assets (deixe rodando)
+bash
+Copiar código
 npm run dev
-```
-
-### 4) Linkar no Herd e acessar
-
-```bash
+4) Linkar no Herd e acessar
+bash
+Copiar código
 herd link
-```
+Acesse: http://amazing.test
 
-Acesse:
-
-* [http://amazing.test](http://amazing.test)
-
----
-
-## Comandos úteis
-
-### Listar rotas
-
-```bash
+Comandos úteis
+Listar rotas
+bash
+Copiar código
 cd amazing
 php artisan route:list
-```
-
-### Limpar caches
-
-```bash
+Limpar caches
+bash
+Copiar código
 cd amazing
 php artisan optimize:clear
 php artisan view:clear
-```
-
-### Build (produção)
-
-```bash
+Build (produção)
+bash
+Copiar código
 cd amazing
 npm run build
-```
+Convenções (pra escalar sem bagunça)
+Rotas por módulo: amazing/routes/web.php importa/organiza rotas (prefix + name por módulo)
 
----
+Controllers por módulo: amazing/app/Http/Controllers/<Modulo>
 
-## Convenções (para escalar sem bagunça)
+Views por módulo: amazing/resources/views/<modulo>
 
-* Rotas: `amazing/routes/web.php` agrupadas por módulo (`prefix` + `name`)
-* Controllers: `amazing/app/Http/Controllers/<Modulo>`
-* Views: `amazing/resources/views/<modulo>`
-* Layout base: `amazing/resources/views/layouts/app.blade.php`
+Layout base: amazing/resources/views/layouts/app.blade.php
 
----
+Estrutura do repositório
+docs/ — documentação do projeto (produto + decisões)
 
-## Documentação
+amazing/ — aplicação Laravel (código principal)
 
-* `docs/overview.md` — visão do projeto e escopo
-* `docs/arquitetura.md` — padrões e estrutura
-* `docs/roadmap.md` — fases e definições de pronto
+Segurança e boas práticas
+Nunca versionar .env
 
----
+Não versionar vendor/, node_modules/, storage/ e builds gerados
 
-## Segurança e boas práticas
+Licença
+Privado / uso interno (definir futuramente)
 
-* **Nunca versionar `.env`**
-* Não versionar `vendor/`, `node_modules/`, `storage/` e builds
+About do GitHub (lateral direita)
+Description (curta e forte):
 
----
+Hub interno Vaapty (UI-only). Laravel + Blade + Tailwind + Vite.
 
-## Licença
+Topics (recomendados):
 
-Privado / uso interno (definir futuramente).
+laravel
 
-```
+php
 
----
+blade
 
-## About do GitHub (lateral direita)
+tailwindcss
 
-**Description (curta e forte):**  
-> Hub interno Vaapty (UI-only). Laravel + Blade + Tailwind + Vite.
+vite
 
-**Topics (recomendados):**
-- `laravel`
-- `php`
-- `blade`
-- `tailwindcss`
-- `vite`
-- `dashboard`
-- `admin`
-- `prototype`
-- `internal-tools`
+dashboard
 
----
+admin
 
+prototype
 
-::contentReference[oaicite:0]{index=0}
-```
+internal-tools

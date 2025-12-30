@@ -1,72 +1,71 @@
-# Roadmap
+# Roadmap — Amazing (Hub Vaapty)
 
-## Fase 0 — Setup e trilhos (base do projeto)
-**Objetivo:** garantir que o projeto roda e é fácil de evoluir.
-- Herd configurado e app acessível em `amazing.test`
-- Repo organizado (`/docs` + `/amazing`)
-- `.gitignore` blindado (sem `.env`, `vendor`, `node_modules`, `storage`)
-- README com “como rodar do zero”
-
-**Definição de pronto (DoD)**
-- Qualquer dev clona e roda seguindo README sem dor.
+Este roadmap descreve as fases do projeto e critérios de “pronto” (DoD) para cada etapa.
 
 ---
 
-## Fase 1 — Protótipo UI (Hub + módulos)
-**Objetivo:** UI navegável com layout consistente.
-- Layout base (sidebar + header)
-- Rotas do hub + módulos
-- Páginas placeholder (Hub / Comercial / Financeiro / Central)
-- Componentes iniciais:
-  - Card
-  - Botão
-  - Badge/Status
-  - Tabela (mock)
-  - Empty state
+## Fase 1 — UI-only (atual)
 
-**DoD**
-- Navegação fluida entre módulos
-- Layout consistente e reaproveitável
+### Objetivo
+Validar estrutura visual, navegação e padrões de UI com um protótipo navegável.
+
+### Backlog (prioridade)
+1. Consolidar layout base (sidebar/header/content) e navegação
+2. Criar design system mínimo (Card, Button, Badge, Table, Empty state)
+3. Implementar placeholders com dados mockados (tabelas e gráficos fake)
+4. Revisar com stakeholders e ajustar UI/fluxos
+5. Só então iniciar fase funcional (auth, permissões, DB, integrações)
 
 ---
 
-## Fase 1.5 — UI “enterprise” (refino)
-**Objetivo:** deixar com cara de sistema grande.
-- Sidebar colapsável
-- Header com busca + usuário (mock)
-- Breadcrumbs
-- Padrão de tabelas: paginação mock + filtros mock
-- Padrão de formulários (inputs, selects, validação visual)
+## Definição de pronto (DoD) — Fase 1
 
-**DoD**
-- Design system mínimo padronizado e replicável
+- Hub e módulos abrem sem erro (**0 telas 500**)
+- Navegação básica funcionando (sidebar)
+- Layout consistente (header/sidebar/content)
+- Pelo menos **1 componente reutilizável** criado (ex.: Card)
+- Docs atualizados (`overview`, `arquitetura`, `roadmap`) e README ensinando rodar do zero
 
 ---
 
-## Fase 2 — Funcional (quando entrar backend de verdade)
-**Objetivo:** sistema começa a “funcionar” com regras reais.
+## Fase 2 — Base funcional (planejada)
+
+### Objetivo
+Criar fundação real do sistema sem quebrar padrões da UI.
+
+**Escopo sugerido:**
 - Autenticação
-- Perfis e permissões (RBAC)
-- Hierarquia (loja → gerente → regional → central)
-- CRUDs reais por módulo (começar pelo Comercial)
-- Auditoria básica (log de ações)
-
-**DoD**
-- Usuários logam e veem apenas o que podem
-- CRUDs principais funcionando com padrões de UI/UX
+- RBAC/permissões (roles + permissions)
+- Estrutura inicial de banco (mínima)
+- Padrões de listagem (tabela com paginação/filtros reais)
+- Logs básicos + tratamento de erros
 
 ---
 
-## Fase 3 — Escala e robustez
-**Objetivo:** suportar rede grande com performance e observabilidade.
-- Multi-loja (tenant)
-- Filas (queue) para processamento pesado (extratos/importações)
-- Cache (Redis) e paginação real
-- Storage de imagens/anexos (S3/compatível)
-- Notificações (web e base para mobile)
-- Observabilidade (logs/métricas) + rotinas de backup
+## Fase 3 — Primeiros módulos reais (planejada)
 
-**DoD**
-- Fluxos pesados assíncronos
-- Performance consistente em listas grandes
-- Base pronta para crescimento (100+ lojas)
+### Objetivo
+Tornar 1–2 módulos “de verdade” usáveis (mesmo que simples).
+
+**Exemplos:**
+- Comercial: pipeline/leads básico
+- Financeiro: telas de recebíveis (com dados reais e filtros)
+
+---
+
+## Perguntas em aberto (próxima rodada)
+
+- Identidade visual Vaapty: cores/logotipo/fontes já existem?
+- Quais módulos entram no Hub logo de cara (prioridade 1)?
+- Sidebar fixa ou colapsável?
+- Protótipo wireframe (rápido) ou high-fidelity (quase final)?
+- Quais indicadores/gráficos são indispensáveis no Hub (mesmo que fake)?
+
+---
+
+## Critérios de sucesso (Fase 1)
+
+- Stakeholders conseguem “navegar e entender” o sistema sem explicação longa
+- Padrões visuais estão consistentes
+- Estrutura do código já está preparada para crescer por módulos
+- Não existem “atalhos sujos” que vão cobrar juros na Fase 2

@@ -13,13 +13,7 @@ Nesta fase, o foco é **estrutura visual + layout + navegação**, preparando o 
 
 ## Links rápidos (docs)
 
-- `docs/README.md` — índice da documentação
-- `docs/visao-produto.md` — visão do projeto e escopo
-- `docs/arquitetura.md` — decisões técnicas e organização
-- `docs/rotas-portais-modulos.md` — padrões de rotas, portais e módulos
-- `docs/rodar-local.md` — setup local (Herd + Vite)
-- `docs/adicionando-modulo.md` — receita pra criar módulo novo
-- `docs/troubleshooting.md` — erros comuns e soluções
+- `docs/arquitetura.md` — **fonte de verdade** (arquitetura, rotas, portais, módulos, sidebar, env, padrões)
 - `docs/adr/` — decisões registradas (ADR)
 
 ---
@@ -29,8 +23,8 @@ Nesta fase, o foco é **estrutura visual + layout + navegação**, preparando o 
 ### O que existe hoje
 - Layout base (sidebar + header + content)
 - Rotas e páginas placeholder por módulo
-- Navegação por **módulos** e **portais**
-- Estrutura organizada para crescimento (**groups**, **modules**, configs, docs)
+- Navegação por **portais**, **módulos** e **scope**
+- Estrutura organizada para crescimento (configs + middlewares + docs)
 - Mocks visuais (tabelas/listas/gráficos fake)
 
 ### O que **não** faz parte desta fase
@@ -64,13 +58,15 @@ Módulos rodam em rotas escopadas:
 
 ## Macro-acesso por portal (Portal → Modules)
 
-A “governança” do que aparece e do que pode ser acessado é definida por config:
+A governança do que aparece e do que pode ser acessado é definida por config:
 
 - `amazing/config/portals.php` → portal → módulos permitidos  
-- `amazing/config/modules.php` → catálogo de módulos (label, rota, ordem, etc.)
+- `amazing/config/modules.php` → catálogo de módulos (label, rota, ordem, seção etc.)
 
 Além do menu, as rotas são reforçadas por middleware:
 - `module_enabled:<modulo>` (bloqueia acesso por URL direta quando o portal não permite)
+
+A sidebar é derivada de config (sem hardcode de links), mantendo UI e regras sempre consistentes.
 
 ---
 
@@ -94,38 +90,50 @@ bash
 Copiar código
 copy .env.example .env
 php artisan key:generate
-Recomendado no .env (Herd):
+Recomendado no .env (Herd + UI-only):
 
 env
 Copiar código
 APP_URL=http://amazing.test
-SESSION_DRIVER=file
+
+APP_LOCALE=pt_BR
+APP_FALLBACK_LOCALE=pt_BR
+APP_FAKER_LOCALE=pt_BR
+
+QUEUE_CONNECTION=sync
+CACHE_STORE=file
+Dica: QUEUE_CONNECTION=sync e CACHE_STORE=file evitam dependência de tabelas/migrations e reduzem “B.O. aleatório” no protótipo.
+
 3) Subir assets (deixe rodando)
 bash
 Copiar código
 npm run dev
 4) Acessar no Herd
 Garanta que o Herd está apontando para a pasta amazing/ (onde existe public/ e artisan).
-Acesse:
 
 http://amazing.test/loja (seta portal loja)
 
 http://amazing.test/s/default (hub no scope default)
 
-Observação: o / pode retornar 404 por enquanto (entrypoint ainda não definido).
+http://amazing.test/s/default/comercial (módulo comercial)
+
+Observação: / pode retornar 404 caso o entrypoint ainda não esteja definido.
 
 Comandos úteis
-Listar rotas
+Listar rotas:
+
 bash
 Copiar código
 cd amazing
 php artisan route:list
-Limpar caches
+Limpar caches:
+
 bash
 Copiar código
 cd amazing
 php artisan optimize:clear
-Build (produção)
+Build (produção):
+
 bash
 Copiar código
 cd amazing
@@ -149,7 +157,7 @@ URL: /s/{scope}/<modulo>
 Controllers
 amazing/app/Http/Controllers/<Modulo>/...
 
-UI-only: apenas dados fake/mock + render de view
+UI-only: apenas dados fake/mock + render de view.
 
 Views
 amazing/resources/views/<modulo>/...
@@ -161,7 +169,7 @@ Deve ser derivado de:
 
 config/portals.php + config/modules.php
 
-Sem hardcode de links “na mão” (pra não divergir do controle macro)
+Sem hardcode de links “na mão”.
 
 Segurança e boas práticas
 Nunca versionar .env

@@ -1,33 +1,22 @@
 @php
-  $scope = $currentScope ?? (request()->route('scope') ?? 'default');
-  $portalLabel = $currentPortal['label'] ?? 'Amazing';
-
-  // sidebarSections vem do SidebarComposer
   $sections = $sidebarSections ?? [];
+
+  $scope = $currentScope ?? (request()->route('scope') ?? 'default');
+
+  // compat: se ainda existir $currentPortal (array)
+  $portalLabel = $currentPortalLabel
+    ?? ($currentPortal['label'] ?? 'Amazing');
 @endphp
 
 <aside class="app-sidebar">
-  {{-- Brand / topo --}}
-  <div class="app-sidebar__brand">
-    <a href="{{ route('hub.index', ['scope' => $scope]) }}" class="app-sidebar__item">
-      <div class="app-sidebar__logo">A</div>
-
-      <span class="sr-only">{{ $portalLabel }}</span>
-      <span class="app-sidebar__tooltip">
-        Portal: {{ $portalLabel }} • Scope: {{ $scope }}
-      </span>
-    </a>
-  </div>
-
-  {{-- Navegação (rail de ícones) --}}
   <nav class="app-sidebar__nav" aria-label="Navegação">
-    @foreach($sections as $section)
-      @if(!$loop->first)
+    @foreach ($sections as $section)
+      @if (!$loop->first)
         <div class="app-sidebar__divider" role="separator"></div>
       @endif
 
-      @foreach(($section['items'] ?? []) as $item)
-        @php($active = (bool)($item['active'] ?? false))
+      @foreach (($section['items'] ?? []) as $item)
+        @php($active = (bool) ($item['active'] ?? false))
 
         <a
           href="{{ $item['url'] }}"
@@ -45,8 +34,9 @@
     @endforeach
   </nav>
 
-  {{-- Rodapé --}}
   <div class="app-sidebar__bottom">
-    <div class="app-sidebar__footer">Amazing • v0</div>
+    <div class="app-sidebar__footer">
+      {{ $portalLabel }} • {{ $scope }}
+    </div>
   </div>
 </aside>

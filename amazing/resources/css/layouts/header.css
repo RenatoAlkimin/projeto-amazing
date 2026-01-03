@@ -1,0 +1,38 @@
+@layer components {
+  .app-topbar {
+    @apply h-14 bg-slate-900 text-slate-100
+           border-b border-slate-800
+           flex items-center;
+  }
+
+  .app-topbar__slot {
+    @apply w-16 flex items-center justify-center;
+  }
+
+  .app-topbar__brand {
+    @apply w-10 h-10 rounded-xl bg-slate-800
+           flex items-center justify-center
+           font-bold text-white select-none;
+  }
+
+  .app-topbar__searchWrap {
+    @apply flex-1 px-3;
+  }
+
+  .app-topbar__search {
+    @apply w-full max-w-xl rounded-xl
+           bg-slate-800/70 border border-slate-700
+           px-3 py-2 text-sm
+           placeholder:text-slate-400
+           focus:outline-none focus:ring-2 focus:ring-slate-500;
+  }
+
+  .app-topbar__meta {
+    @apply pr-3 text-xs text-slate-300 flex items-center gap-2;
+  }
+
+  .app-topbar__pill {
+    @apply px-2 py-1 rounded-full bg-slate-800/70 border border-slate-700
+           font-mono text-[11px];
+  }
+}

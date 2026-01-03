@@ -15,15 +15,13 @@ class SidebarComposer
         private readonly ScopeContext $scope,
     ) {}
 
-    public function compose(View $view): void
+    public function compose(\Illuminate\View\View $view): void
     {
         $view->with([
             'sidebarSections' => $this->builder->build(),
-            'currentPortal' => [
-                'id' => $this->portal->currentId(),
-                'label' => $this->portal->label(),
-            ],
-            'currentScope' => $this->scope->current(),
+            'currentPortalId' => $this->portal->currentId(),
+            'currentPortalLabel' => $this->portal->label(),
+            'currentScope' => $this->scope->get(),
         ]);
     }
 }

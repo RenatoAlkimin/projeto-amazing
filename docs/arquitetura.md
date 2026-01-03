@@ -1,140 +1,130 @@
-# Arquitetura e decisões técnicas — Amazing (UI-only)
+# Arquitetura e Decisões Técnicas — Amazing (UI-only)
 
 Este documento descreve o estado atual do protótipo, decisões de organização e convenções
-para manter o projeto escalável sem virar um monólito bagunçado.
-
----
+para manter o projeto escalável e governável.
 
 ## 1) Princípios (Fase 1)
+- **UI-only de verdade:** sem DB, sem regra de negócio, sem integrações.
+- **Estrutura pra crescer:** modularidade desde o começo.
+- **Consistência acima de liberdade:** padrões visuais e rotas previsíveis.
+- **Portal ≠ Módulo ≠ Permissão fina:** separação clara de responsabilidades.
 
-- **UI-only de verdade:** sem banco, sem regra de negócio, sem integrações.
-- **Foco em consistência:** layout + componentes reutilizáveis.
-- **Organização por módulos:** já preparar a casa pra crescer.
-- **Baixa fricção no dev local:** setup simples e repetível.
-
----
-
-## 2) Stack (protótipo)
-
-- **Laravel 12** + **Blade** (SSR simples pra prototipação)
-- **Tailwind CSS**
-- **Vite** (assets)
-- **Laravel Herd** (Windows / domínio `*.test`)
-
----
+## 2) Stack
+- Laravel 12 + Blade
+- Tailwind CSS
+- Vite
+- Herd (`*.test`)
 
 ## 3) Estrutura do repositório
+- `docs/` documentação
+- `amazing/` app Laravel
 
-- `docs/` — documentação do produto/decisões
-- `amazing/` — aplicação Laravel (código principal)
+## 4) Conceitos
+### 4.1 Portal (Group)
+Portal representa “tipo de acesso/painel”:
+- `amazing`, `franchising`, `franqueado`, `franqueado_central`, `loja`
 
----
+Portal define:
+- home do painel
+- **macro-acesso** a módulos (ex.: loja não enxerga central)
 
-## 4) Organização por módulos (rotas, controllers, views)
+### 4.2 Módulo (Module)
+Módulo é um domínio funcional:
+- hub, comercial, financeiro, central…
 
-### Rotas
+Módulo define:
+- rotas do módulo (urls e nomes)
+- controllers/views do módulo
+- (futuro) permissões finas do que pode fazer dentro do módulo
 
-**Objetivo:** manter rotas separadas por módulo, evitando `web.php` virar um carnaval.
+### 4.3 Scope
+As rotas dos módulos são escopadas por `/{scope}`:
+- `/s/{scope}` (hub)
+- `/s/{scope}/comercial`
+- `/s/{scope}/financeiro`
 
-- `amazing/routes/web.php` importa arquivos em:  
-  `amazing/routes/modules/*.php`
+No UI-only, scope é um identificador (ex.: `default`).
+Na fase 2 vira contexto real (loja, franqueado etc).
 
-**Padrão sugerido:**
-- Cada módulo tem seu arquivo (ex.: `comercial.php`, `financeiro.php`, `central.php`)
-- Rotas sempre com `prefix` e `name` do módulo, por exemplo:
-  - `prefix('comercial')->name('comercial.')`
+## 5) Organização das rotas
 
-### Controllers
+### 5.1 Pastas e arquivos
 
-- `amazing/app/Http/Controllers/<Modulo>/...`
+amazing/routes/
+web.php
+groups/
+amazing.php
+franchising.php
+franqueado.php
+franqueado_central.php
+loja.php
+scoped_modules.php
+modules/
+hub.php
+comercial.php
+financeiro.php
+central.php
 
-**Padrão:**
-- Controller só prepara “dados fake”/mock e escolhe view.
-- Nada de lógica de negócio aqui (ainda).
 
-### Views
+### 5.2 `routes/web.php`
+- Serve como agregador.
+- Importa os grupos (ordem decrescente de acesso).
+- Importa o grupo de módulos escopados.
 
-- `amazing/resources/views/<modulo>/...`
-- Layout base: `amazing/resources/views/layouts/app.blade.php`
+### 5.3 `routes/groups/*.php` (portais)
+- Define rotas de entrada por portal (ex.: `/loja`).
+- No protótipo, pode setar o portal na sessão pra teste.
 
-**Padrão:**
-- Cada módulo tem:
-  - `index.blade.php` (entrada)
-  - `partials/` (se precisar)
-- Layout base centraliza:
-  - sidebar
-  - header
-  - container de conteúdo
-  - breadcrumbs (se existir)
+### 5.4 `routes/groups/scoped_modules.php`
+- Define o prefixo: `s/{scope}`
+- Aplica middlewares:
+  - `resolve_portal` (portal atual)
+  - `set_scope` (scope atual)
+- Importa os módulos.
 
----
+### 5.5 `routes/modules/*.php` (módulos)
+- Cada módulo é um arquivo.
+- Convenção:
+  - `prefix('<modulo>')`
+  - `as('<modulo>.')`
+  - rota de entrada é sempre `->name('index')`
 
-## 5) Componentes de UI (design system mínimo)
+## 6) Convenções de nomes
+- Entrada do módulo: `*.index`
+- Exemplo:
+  - `comercial.index`, `financeiro.index`, `central.index`, `hub.index`
 
-Pra UI escalar, a recomendação é usar **Blade components** desde cedo.
+## 7) Macro-acesso (Portal → Módulos)
+### Fonte de verdade
+- `config/portals.php` define quais módulos o portal pode acessar.
+- `config/modules.php` define metadados dos módulos (label/rota/ordem/permission).
 
-### Onde colocar
+### Enforcement (segurança)
+- middleware `module_enabled:<modulo>` em cada módulo
+- impede acesso por URL direta quando o portal não permite
 
-Opção A (mais simples no Blade):
-- `amazing/resources/views/components/`
+## 8) Sidebar governada por config
+A sidebar é renderizada a partir de:
+- `config/portals.php` (módulos permitidos)
+- `config/modules.php` (catálogo dos módulos)
 
-Exemplos:
-- `components/card.blade.php`
-- `components/button.blade.php`
-- `components/badge.blade.php`
-- `components/table.blade.php`
-- `components/empty-state.blade.php`
+Regras:
+- só renderiza itens que o portal permite
+- gera URL via `route(<rota>, ['scope' => <scope>])`
+- marca item ativo com `request()->routeIs('<modulo>.*')`
+- (futuro) filtra também por permissão fina `can(...)`
 
-### Convenções
+## 9) Controllers e Views
+- Controllers: `app/Http/Controllers/<Modulo>/...`
+- Views: `resources/views/<modulo>/...`
+- Layout base: `resources/views/layouts/app.blade.php`
 
-- Componentes devem ter:
-  - API pequena (poucos props)
-  - estilos consistentes (Tailwind)
-  - variantes claras (`variant="primary"`, `size="sm"` etc.)
-- Evitar duplicar padrões em várias views.
-- Se um pedaço se repete 2x, vira componente. (Sem dó.)
+Regra fase 1:
+- controller monta dados fake e escolhe view
+- sem regra de negócio
 
----
-
-## 6) Assets: Vite + Tailwind
-
-- Dev: `npm run dev` (mantém o Vite server rodando)
-- Build: `npm run build` (pra produção)
-
-**Dica anti-bug clássico:**  
-Se der erro de manifest / Vite, confirme que o dev server está rodando e que o `.env` está coerente com o ambiente.
-
----
-
-## 7) Configuração de ambiente (UI-only)
-
-Recomendações no `.env` (Herd):
-
-- `APP_URL=http://amazing.test`
-- `SESSION_DRIVER=file` (não depender de DB)
-
----
-
-## 8) Padrões de navegação (UX)
-
-- Sidebar:
-  - itens por módulo
-  - destaque do item ativo
-  - (futuro) colapsável
-- Header:
-  - título da página (h1)
-  - ações de contexto (botões)
-  - (futuro) usuário/empresa/região/loja
-
----
-
-## 9) Preparação pra Fase 2 (sem implementar ainda)
-
-Quando for evoluir pra fase funcional, manter as responsabilidades separadas:
-
-- **Auth/RBAC:** Policies/Gates, middleware, roles/permissions
-- **Dados pesados (extratos, anexos):** filas (queue) + storage (S3) + processamento assíncrono
-- **Performance:** paginação, filtros server-side, índices e caching onde fizer sentido
-- **Observabilidade:** logs estruturados + métricas básicas
-
-> A Fase 1 só “prepara o terreno” — mas já evita decisões que travam a Fase 2.
+## 10) Fase 2 (contratos sem implementar)
+- RBAC por escopo
+- hierarquia viva (central/franqueado/loja)
+- auditoria de mudanças de acesso
+- filas e processamento assíncrono

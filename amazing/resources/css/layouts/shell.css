@@ -1,0 +1,52 @@
+@layer base {
+  :root {
+    --hs-rail: 64px;
+    --hs-topbar: 48px;
+    --hs-radius: 12px;
+
+    /* ✅ cor única para sidebar + topbar */
+    --hs-chrome: #48186e;
+    --hs-top: #48186e;
+
+    --hs-surface: #f5f8fa;
+    --hs-line: rgba(255, 255, 255, 0.10);
+  }
+}
+
+@layer components {
+  .app-shell {
+    background: var(--hs-chrome);
+  }
+
+  .app-frame {
+    @apply min-h-dvh flex flex-col;
+  }
+
+  .app-body {
+    @apply flex flex-1;
+    min-height: calc(100dvh - var(--hs-topbar));
+  }
+
+  /* HubSpot: sem gap externo. A curva aparece porque o main começa abaixo do topbar */
+  
+   .app-surface {
+    background: var(--hs-surface);
+
+    /* ✅ curva só no canto esquerdo */
+    border-top-left-radius: var(--hs-radius);
+    border-top-right-radius: 0;
+
+    box-shadow: 0 0 0 1px rgba(0,0,0,.05);
+
+    @apply flex-1 overflow-hidden;
+  }
+
+  /* Header interno do conteúdo gruda abaixo do topbar (sem “gap”) */
+  .app-contentHeader {
+    position: sticky;
+    top: var(--hs-topbar);
+    z-index: 20;
+    background: var(--hs-surface);
+    border-bottom: 1px solid rgba(0,0,0,.08);
+  }
+}

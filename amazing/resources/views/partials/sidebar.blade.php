@@ -29,6 +29,6 @@
   </nav>
 
   <div class="app-sidebar__bottom">
-    <div class="app-sidebar__footer">Amazing • v0</div>
+    <span class="app-sidebar__beta">Beta</span>
   </div>
 </aside>

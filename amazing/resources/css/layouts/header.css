@@ -1,39 +1,96 @@
 @layer components {
   .app-topbar {
-    @apply h-14 bg-slate-900 text-slate-100
-           border-b border-slate-800
-           flex items-center;
+    height: var(--hs-topbar);
+    background: var(--hs-top);
+    @apply flex items-center sticky top-0 z-40;
   }
 
-  /* slot alinhado com a sidebar (mesma largura) */
   .app-topbar__slot {
-    @apply w-16 flex items-center justify-center;
+    width: var(--hs-rail);
+    background: var(--hs-chrome);
+    @apply flex items-center justify-center;
   }
 
   .app-topbar__brand {
-    @apply w-10 h-10 rounded-xl bg-slate-800
+    @apply w-10 h-10 rounded-xl
            flex items-center justify-center
-           font-bold text-white select-none;
+           select-none;
+    background: transparent;
+  }
+
+  .app-topbar__logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    display: block;
   }
 
   .app-topbar__searchWrap {
-    @apply flex-1 px-3;
+    @apply flex-1 px-3 flex items-center gap-2;
+  }
+
+  .app-topbar__searchField {
+    @apply relative flex items-center;
+    width: min(540px, 100%);
+  }
+
+  .app-topbar__searchIcon {
+    @apply absolute left-3 w-4 h-4 pointer-events-none;
+    color: rgba(255,255,255,.88);
+    opacity: .9;
   }
 
   .app-topbar__search {
-    @apply w-full max-w-xl rounded-xl
-           bg-slate-800/70 border border-slate-700
-           px-3 py-2 text-sm
-           placeholder:text-slate-400
-           focus:outline-none focus:ring-2 focus:ring-slate-500;
+    height: 34px;
+    padding-left: 38px;
+    padding-right: 64px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(0,0,0,.10);
+    color: rgba(255,255,255,.92);
+    border-radius: 9999px;
+    @apply w-full text-sm outline-none;
+  }
+
+  .app-topbar__search::placeholder {
+    color: rgba(255,255,255,.78);
+  }
+
+  .app-topbar__search:focus {
+    box-shadow: 0 0 0 2px rgba(255,255,255,.16);
+  }
+
+  .app-topbar__kbd {
+    @apply absolute right-2 text-[11px] px-2 py-1;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(0,0,0,.10);
+    color: rgba(255,255,255,.85);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  .app-topbar__plus {
+    height: 34px;
+    width: 34px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(0,0,0,.10);
+    @apply flex items-center justify-center transition;
+  }
+
+  .app-topbar__plus:hover {
+    background: rgba(255,255,255,.08);
   }
 
   .app-topbar__meta {
-    @apply pr-3 text-xs text-slate-300 flex items-center gap-2;
+    @apply pr-3 text-xs flex items-center gap-2;
+    color: rgba(255,255,255,.82);
   }
 
   .app-topbar__pill {
-    @apply px-2 py-1 rounded-full bg-slate-800/70 border border-slate-700
-           font-mono text-[11px];
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(0,0,0,.12);
+    border-radius: 9999px;
+    @apply px-2 py-1 font-mono text-[11px];
+    color: rgba(255,255,255,.9);
   }
 }

@@ -1,55 +1,73 @@
 @layer components {
   .app-sidebar {
-    @apply w-16 shrink-0 h-full flex flex-col
-           bg-slate-900 text-slate-200
-           border-r border-slate-800;
+    width: var(--hs-rail);
+    background: var(--hs-chrome);
+    @apply shrink-0 h-full flex flex-col;
   }
 
   .app-sidebar__nav {
-    @apply flex-1 px-2 py-2 space-y-1;
+    @apply flex-1 px-2 py-3 space-y-3;
   }
 
   .app-sidebar__divider {
-    @apply my-2 border-t border-slate-800;
+    margin: 14px 10px;
+    border-top: 1px solid var(--hs-line);
   }
 
   .app-sidebar__item {
-    @apply relative flex items-center justify-center
-           h-11 rounded-xl transition
-           text-slate-200;
+    height: 44px;
+    @apply relative flex items-center justify-center transition;
+    border-radius: 18px;
+    color: rgba(255,255,255,.90);
   }
 
   .app-sidebar__item:hover {
-    @apply bg-slate-800 text-white;
+    background: rgba(255,255,255,.08);
   }
 
   .app-sidebar__item.is-active {
-    @apply bg-slate-100 text-slate-900;
+    background: rgba(255,255,255,.14);
   }
 
   .app-sidebar__item.is-active:hover {
-    @apply bg-white text-slate-900;
+    background: rgba(255,255,255,.18);
   }
 
-  /* Tooltip estilo HubSpot */
   .app-sidebar__tooltip {
-    @apply pointer-events-none absolute left-[60px] top-1/2 -translate-y-1/2
-           whitespace-nowrap rounded-lg px-2 py-1 text-xs
-           bg-slate-900 text-slate-100
-           border border-slate-700 shadow-lg
-           opacity-0 translate-x-1 transition
-           z-50;
+    pointer-events: none;
+    position: absolute;
+    left: calc(var(--hs-rail) + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    padding: 8px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,.12);
+    background: rgba(0,0,0,.72);
+    color: rgba(255,255,255,.92);
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    opacity: 0;
+    translate: 4px 0;
+    transition: opacity .15s ease, translate .15s ease;
+    z-index: 50;
+    font-size: 12px;
   }
 
   .app-sidebar__item:hover .app-sidebar__tooltip {
-    @apply opacity-100 translate-x-0;
+    opacity: 1;
+    translate: 0 0;
   }
 
   .app-sidebar__bottom {
-    @apply px-2 py-3 border-t border-slate-800;
+    border-top: 1px solid var(--hs-line);
+    @apply px-2 py-3 flex items-center justify-center;
   }
 
-  .app-sidebar__footer {
-    @apply text-[11px] text-slate-400 text-center;
+  .app-sidebar__beta {
+    border-radius: 9999px;
+    @apply text-[11px] px-3 py-1;
+    background: rgba(0,0,0,.12);
+    border: 1px solid rgba(255,255,255,.18);
+    color: rgba(255,255,255,.9);
   }
 }

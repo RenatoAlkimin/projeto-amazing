@@ -9,19 +9,19 @@
   @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="bg-slate-900 text-gray-900">
-  <div class="min-h-screen flex flex-col">
-    {{-- Topbar (conectada no sidebar) --}}
+<body class="app-shell text-gray-900">
+  <div class="app-frame">
+    {{-- Topbar --}}
     @include('partials.topbar')
 
-    <div class="flex flex-1">
-      {{-- Sidebar (rail) --}}
+    <div class="app-body">
+      {{-- Sidebar --}}
       @include('partials.sidebar')
 
-      {{-- Conteúdo --}}
-      <main class="flex-1 bg-gray-50">
-        {{-- Header interno do conteúdo (abaixo do topbar) --}}
-        <header class="sticky top-14 z-10 bg-white border-b">
+      {{-- Conteúdo (surface com curva) --}}
+      <main class="app-surface">
+        {{-- Header interno do conteúdo --}}
+        <header class="app-contentHeader">
           <div class="px-6 py-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="text-lg font-semibold">

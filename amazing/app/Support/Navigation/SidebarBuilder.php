@@ -2,29 +2,43 @@
 
 namespace App\Support\Navigation;
 
+use App\Support\Context\PortalContext;
+use App\Support\Context\ScopeContext;
 use Illuminate\Support\Facades\Route;
 
 class SidebarBuilder
 {
+    public function __construct(
+        private PortalContext $portal,
+        private ScopeContext $scope,
+    ) {}
+
     public function build(): array
     {
-        $portal = $this->currentPortal();
-        $scope  = $this->currentScope();
+        $portal = $this->portal->get();
+        $scope  = $this->scope->get();
 
-        $portalModules = config("portals.$portal.modules", []);
         $modules = config('modules', []);
 
-        // ordena por "order" se existir
-        uasort($modules, fn ($a, $b) => ($a['order'] ?? 999) <=> ($b['order'] ?? 999));
+        $sectionWeight = [
+            'principal' => 10,
+            'admin'     => 20,
+        ];
+
+        uasort($modules, function ($a, $b) use ($sectionWeight) {
+            $sa = $sectionWeight[$a['section'] ?? 'principal'] ?? 999;
+            $sb = $sectionWeight[$b['section'] ?? 'principal'] ?? 999;
+
+            return [$sa, $a['order'] ?? 999] <=> [$sb, $b['order'] ?? 999];
+        });
 
         $items = [];
 
         foreach ($modules as $key => $mod) {
-            if (!$this->portalAllows($portalModules, $key)) {
+            if (!$this->portal->allows($key, $portal)) {
                 continue;
             }
 
-            // Permissões finas (deixa pronto; hoje sem auth pode ignorar)
             $permission = $mod['permission'] ?? null;
             if ($permission && auth()->check() && !auth()->user()->can($permission)) {
                 continue;
@@ -32,46 +46,19 @@ class SidebarBuilder
 
             $routeName = $mod['route'] ?? null;
             if (!$routeName || !Route::has($routeName)) {
-                // Evita quebrar a página se alguém esquecer de registrar rota
                 continue;
             }
 
-            $href = route($routeName, ['scope' => $scope]);
-            $active = request()->routeIs($key . '.*');
-
             $items[] = [
-                'key' => $key,
-                'label' => $mod['label'] ?? ucfirst($key),
-                'href' => $href,
-                'active' => $active,
+                'key'     => $key,
+                'label'   => $mod['label'] ?? ucfirst($key),
+                'href'    => route($routeName, ['scope' => $scope]),
+                'active'  => request()->routeIs($key . '.*'),
                 'section' => $mod['section'] ?? 'principal',
-                'icon' => $mod['icon'] ?? null, // opcional
+                'icon'    => $mod['icon'] ?? null,
             ];
         }
 
         return $items;
-    }
-
-    private function portalAllows(array $portalModules, string $moduleKey): bool
-    {
-        return in_array('*', $portalModules, true) || in_array($moduleKey, $portalModules, true);
-    }
-
-    private function currentPortal(): string
-    {
-        if (app()->bound('currentPortal')) {
-            return (string) app('currentPortal');
-        }
-
-        return (string) session('portal', 'loja');
-    }
-
-    private function currentScope(): string
-    {
-        if (app()->bound('currentScope')) {
-            return (string) app('currentScope');
-        }
-
-        return (string) session('scope', 'default');
     }
 }

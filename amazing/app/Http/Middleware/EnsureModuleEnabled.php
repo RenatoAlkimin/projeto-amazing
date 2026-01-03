@@ -2,21 +2,25 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Context\PortalContext;
 use Closure;
 use Illuminate\Http\Request;
 
 class EnsureModuleEnabled
 {
+    public function __construct(private PortalContext $portal)
+    {
+    }
+
     public function handle(Request $request, Closure $next, string $module)
     {
-        $portal = app()->bound('currentPortal')
-            ? app('currentPortal')
-            : $request->session()->get('portal', 'loja');
+        $portal = $this->portal->get();
 
-        $allowed = config("portals.$portal.modules", []);
-        $ok = in_array('*', $allowed, true) || in_array($module, $allowed, true);
-
-        abort_unless($ok, 403, "Módulo '{$module}' não disponível para o portal '{$portal}'.");
+        abort_unless(
+            $this->portal->allows($module, $portal),
+            403,
+            "Módulo '{$module}' não disponível para o portal '{$portal}'."
+        );
 
         return $next($request);
     }

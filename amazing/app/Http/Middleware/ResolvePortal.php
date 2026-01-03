@@ -2,35 +2,34 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Context\PortalContext;
 use Closure;
 use Illuminate\Http\Request;
 
 class ResolvePortal
 {
+    public function __construct(private PortalContext $portal)
+    {
+    }
+
     public function handle(Request $request, Closure $next)
     {
-        $available = array_keys(config('portals', []));
+        $available = $this->portal->availablePortals();
 
-        // 1) Se vier ?portal=... (bom pra testar), salva na sessão
+        // DEV-ONLY switch via query param (controle pra não vazar pra prod)
         $fromQuery = $request->query('portal');
-        if ($fromQuery && in_array($fromQuery, $available, true)) {
-            $request->session()->put('portal', $fromQuery);
+        $allowQuerySwitch =
+            app()->environment('local')
+            && (bool) config('amazing.allow_portal_query_switch', false);
+
+        if ($allowQuerySwitch && $fromQuery && in_array($fromQuery, $available, true)) {
+            $this->portal->set($fromQuery);
+            return $next($request);
         }
 
-        // 2) Tenta sessão
-        $portal = $request->session()->get('portal');
-
-        // 3) Fallback (por enquanto)
-        if (!$portal || !in_array($portal, $available, true)) {
-            $portal = 'loja';
-            $request->session()->put('portal', $portal);
-        }
-
-        // Disponibiliza globalmente
-        app()->instance('currentPortal', $portal);
-
-        // Disponibiliza nas views (sidebar etc.)
-        view()->share('currentPortal', $portal);
+        // Sessão / fallback
+        $current = (string) $request->session()->get('portal', $this->portal->defaultPortal());
+        $this->portal->set($current);
 
         return $next($request);
     }

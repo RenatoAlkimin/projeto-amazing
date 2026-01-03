@@ -1,31 +1,52 @@
-<aside class="w-64 bg-white border-r">
-  <div class="p-4 font-semibold">
-    Amazing • Vaapty
-    <div class="text-xs text-gray-500 mt-1">
-      Portal: {{ $currentPortal ?? '-' }} • Scope: {{ $currentScope ?? '-' }}
-    </div>
+@php
+  $scope = $currentScope ?? (request()->route('scope') ?? 'default');
+  $portalLabel = $currentPortal['label'] ?? 'Amazing';
+
+  // sidebarSections vem do SidebarComposer
+  $sections = $sidebarSections ?? [];
+@endphp
+
+<aside class="app-sidebar">
+  {{-- Brand / topo --}}
+  <div class="app-sidebar__brand">
+    <a href="{{ route('hub.index', ['scope' => $scope]) }}" class="app-sidebar__item">
+      <div class="app-sidebar__logo">A</div>
+
+      <span class="sr-only">{{ $portalLabel }}</span>
+      <span class="app-sidebar__tooltip">
+        Portal: {{ $portalLabel }} • Scope: {{ $scope }}
+      </span>
+    </a>
   </div>
 
-  @php
-    $grouped = collect($sidebarItems ?? [])->groupBy('section');
-  @endphp
+  {{-- Navegação (rail de ícones) --}}
+  <nav class="app-sidebar__nav" aria-label="Navegação">
+    @foreach($sections as $section)
+      @if(!$loop->first)
+        <div class="app-sidebar__divider" role="separator"></div>
+      @endif
 
-  <nav class="px-2 space-y-3">
-    @foreach($grouped as $section => $items)
-      <div>
-        <div class="px-3 text-xs font-semibold uppercase text-gray-400 mb-1">
-          {{ $section }}
-        </div>
+      @foreach(($section['items'] ?? []) as $item)
+        @php($active = (bool)($item['active'] ?? false))
 
-        <div class="space-y-1">
-          @foreach($items as $item)
-            <a class="block rounded px-3 py-2 hover:bg-gray-100 {{ $item['active'] ? 'bg-gray-100' : '' }}"
-               href="{{ $item['href'] }}">
-              {{ $item['label'] }}
-            </a>
-          @endforeach
-        </div>
-      </div>
+        <a
+          href="{{ $item['url'] }}"
+          class="app-sidebar__item {{ $active ? 'is-active' : '' }}"
+          aria-current="{{ $active ? 'page' : 'false' }}"
+        >
+          <x-icon :name="($item['icon'] ?? null)" class="w-5 h-5" />
+          <span class="sr-only">{{ $item['label'] }}</span>
+
+          <span class="app-sidebar__tooltip">
+            {{ $item['label'] }}
+          </span>
+        </a>
+      @endforeach
     @endforeach
   </nav>
+
+  {{-- Rodapé --}}
+  <div class="app-sidebar__bottom">
+    <div class="app-sidebar__footer">Amazing • v0</div>
+  </div>
 </aside>

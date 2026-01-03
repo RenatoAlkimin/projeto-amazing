@@ -4,13 +4,13 @@ return [
     'amazing' => [
         'label' => 'Painel Amazing',
         'home_route' => 'amazing.home',
-        'modules' => ['*'], // acesso total
+        'modules' => ['hub', 'comercial', 'financeiro', 'marketing', 'rh'],
     ],
 
     'franchising' => [
         'label' => 'Painel Franchising',
         'home_route' => 'franchising.home',
-        'modules' => ['hub', 'comercial', 'financeiro', 'central'],
+        'modules' => ['hub', 'comercial', 'financeiro', 'marketing', 'rh'],
     ],
 
     'franqueado' => [

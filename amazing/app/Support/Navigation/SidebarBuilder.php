@@ -4,61 +4,76 @@ namespace App\Support\Navigation;
 
 use App\Support\Context\PortalContext;
 use App\Support\Context\ScopeContext;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 class SidebarBuilder
 {
     public function __construct(
-        private PortalContext $portal,
-        private ScopeContext $scope,
+        private readonly PortalContext $portal,
+        private readonly ScopeContext $scope,
+        private readonly Request $request,
     ) {}
 
+    /**
+     * @return array<string, array{label:string, items: array<int, array{key:string,label:string,url:string,icon:?string,active:bool}>}>
+     */
     public function build(): array
     {
-        $portal = $this->portal->get();
-        $scope  = $this->scope->get();
-
-        $modules = config('modules', []);
-
-        $sectionWeight = [
-            'principal' => 10,
-            'admin'     => 20,
-        ];
-
-        uasort($modules, function ($a, $b) use ($sectionWeight) {
-            $sa = $sectionWeight[$a['section'] ?? 'principal'] ?? 999;
-            $sb = $sectionWeight[$b['section'] ?? 'principal'] ?? 999;
-
-            return [$sa, $a['order'] ?? 999] <=> [$sb, $b['order'] ?? 999];
-        });
+        $catalog = (array) config('modules', []);
+        $allowed = $this->portal->allowedModules();
+        $scope = $this->scope->current();
 
         $items = [];
 
-        foreach ($modules as $key => $mod) {
-            if (!$this->portal->allows($key, $portal)) {
-                continue;
-            }
+        foreach ($allowed as $key) {
+            $m = $catalog[$key] ?? null;
+            if (!is_array($m)) continue;
 
-            $permission = $mod['permission'] ?? null;
-            if ($permission && auth()->check() && !auth()->user()->can($permission)) {
-                continue;
-            }
-
-            $routeName = $mod['route'] ?? null;
-            if (!$routeName || !Route::has($routeName)) {
-                continue;
-            }
+            $routeName = (string)($m['route'] ?? '');
+            if ($routeName === '') continue;
 
             $items[] = [
-                'key'     => $key,
-                'label'   => $mod['label'] ?? ucfirst($key),
-                'href'    => route($routeName, ['scope' => $scope]),
-                'active'  => request()->routeIs($key . '.*'),
-                'section' => $mod['section'] ?? 'principal',
-                'icon'    => $mod['icon'] ?? null,
+                'key' => $key,
+                'label' => (string)($m['label'] ?? $key),
+                'icon' => $m['icon'] ?? null,
+                'section' => (string)($m['section'] ?? 'principal'),
+                'order' => (int)($m['order'] ?? 999),
+                'url' => route($routeName, ['scope' => $scope]),
+                'active' => $this->request->routeIs($key . '.*') || $this->request->routeIs($routeName),
             ];
         }
 
-        return $items;
+        usort($items, fn($a, $b) => [$a['section'], $a['order'], $a['label']] <=> [$b['section'], $b['order'], $b['label']]);
+
+        $sections = [];
+        foreach ($items as $it) {
+            $secKey = $it['section'];
+
+            if (!isset($sections[$secKey])) {
+                $sections[$secKey] = [
+                    'label' => $this->sectionLabel($secKey),
+                    'items' => [],
+                ];
+            }
+
+            $sections[$secKey]['items'][] = [
+                'key' => $it['key'],
+                'label' => $it['label'],
+                'url' => $it['url'],
+                'icon' => $it['icon'],
+                'active' => (bool) $it['active'],
+            ];
+        }
+
+        return $sections;
+    }
+
+    private function sectionLabel(string $key): string
+    {
+        return match ($key) {
+            'principal' => 'Principal',
+            'admin' => 'Admin',
+            default => ucfirst($key),
+        };
     }
 }

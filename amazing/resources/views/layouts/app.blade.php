@@ -1,49 +1,45 @@
-@php
-  // Vem do middleware SetScope (view()->share('currentScope', ...))
-  $scope  = $currentScope ?? 'default';
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>@yield('title', 'Amazing')</title>
 
-  // Vem do middleware ResolvePortal (view()->share('currentPortal', ...))
-  $portal = $currentPortal ?? 'loja';
+  {{-- Vite (dev via public/hot ou build via public/build/manifest.json) --}}
+  @if (file_exists(public_path('hot')) || file_exists(public_path('build/manifest.json')))
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+  @endif
+</head>
 
-  $portalModules = config("portals.$portal.modules", []);
-  $modules = config('modules', []);
+<body class="bg-gray-50 text-gray-900">
+  <div class="min-h-screen flex">
+    {{-- Sidebar --}}
+    @include('partials.sidebar')
 
-  // Ordena se tiver "order" no config/modules.php
-  uasort($modules, fn ($a, $b) => ($a['order'] ?? 999) <=> ($b['order'] ?? 999));
+    {{-- Conteúdo --}}
+    <main class="flex-1">
+      <header class="sticky top-0 z-10 bg-white border-b">
+        <div class="px-6 py-4 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="text-lg font-semibold">
+              @yield('page_title', 'Painel')
+            </div>
 
-  $portalAllows = fn (string $key) =>
-      in_array('*', $portalModules, true) || in_array($key, $portalModules, true);
-@endphp
+            @hasSection('page_subtitle')
+              <div class="text-sm text-gray-500">@yield('page_subtitle')</div>
+            @endif
+          </div>
 
-<nav class="px-2 space-y-1">
-  @foreach ($modules as $key => $mod)
-    @continue(!$portalAllows($key))
+          <div class="text-xs text-gray-500">
+            Scope: <span class="font-mono">{{ request()->route('scope') ?? 'default' }}</span>
+          </div>
+        </div>
+      </header>
 
-    @php
-      $routeName = $mod['route'] ?? null;
-      $label     = $mod['label'] ?? ucfirst($key);
-      $perm      = $mod['permission'] ?? null;
-
-      // Evita quebrar se o config estiver apontando pra rota que não existe
-      $hasRoute = $routeName && \Illuminate\Support\Facades\Route::has($routeName);
-
-      // Permissão fina (quando tiver auth/perms de verdade)
-      $permOk = !$perm || !auth()->check() || auth()->user()->can($perm);
-
-      $isActive = request()->routeIs($key . '.*');
-    @endphp
-
-    @continue(!$hasRoute || !$permOk)
-
-    <a
-      href="{{ route($routeName, ['scope' => $scope]) }}"
-      @class([
-        'block rounded px-3 py-2 hover:bg-gray-100',
-        'bg-gray-100' => $isActive,
-      ])
-      @if($isActive) aria-current="page" @endif
-    >
-      {{ $label }}
-    </a>
-  @endforeach
-</nav>
+      <div class="p-6">
+        @yield('content')
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Comercial;
+namespace App\Http\Controllers\Rh;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-class ComercialController extends Controller
+class RhController extends Controller
 {
     public function index(string $scope, Request $request)
     {
-        return view('modules.comercial.index');
+        return view('modules.rh.index');
     }
 }

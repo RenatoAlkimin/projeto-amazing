@@ -2,37 +2,70 @@
 
 namespace App\Support\Context;
 
+use Illuminate\Http\Request;
+
 class ScopeContext
 {
-    public function defaultScope(): string
+    /**
+     * Chave usada pelo middleware SetScope
+     */
+    public const SESSION_KEY = 'scope';
+
+    /**
+     * Compatibilidade com versões antigas (se existir)
+     */
+    public const LEGACY_SESSION_KEY = 'amazing.scope';
+
+    private const SCOPE_REGEX = '/^[a-z0-9_-]{1,64}$/i';
+
+    public function __construct(private readonly ?Request $request = null) {}
+
+    public function isValid(string $scope): bool
     {
-        return (string) config('amazing.default_scope', 'default');
+        return $scope !== '' && (bool) preg_match(self::SCOPE_REGEX, $scope);
+    }
+
+    public function set(string $scope): void
+    {
+        if (!$this->isValid($scope)) {
+            $scope = 'default';
+        }
+
+        session()->put(self::SESSION_KEY, $scope);
+        session()->put(self::LEGACY_SESSION_KEY, $scope); // compat
     }
 
     public function get(): string
     {
-        if (app()->bound('currentScope')) {
-            return (string) app('currentScope');
+        $scope = (string) session()->get(self::SESSION_KEY, '');
+
+        if ($scope !== '' && $this->isValid($scope)) {
+            return $scope;
         }
 
-        $scope = (string) session('scope', $this->defaultScope());
+        // compat: migra legacy key se existir
+        $legacy = (string) session()->get(self::LEGACY_SESSION_KEY, '');
+        if ($legacy !== '' && $this->isValid($legacy)) {
+            session()->put(self::SESSION_KEY, $legacy);
+            return $legacy;
+        }
 
-        return $scope !== '' ? $scope : $this->defaultScope();
+        return 'default';
     }
 
-    public function set(string $scope): string
+    /**
+     * Alias pra quem usa ->current()
+     */
+    public function current(): string
     {
-        $scope = $scope !== '' ? $scope : $this->defaultScope();
+        // se tiver request e tiver scope na rota, prioriza
+        if ($this->request) {
+            $fromRoute = (string) $this->request->route('scope', '');
+            if ($fromRoute !== '' && $this->isValid($fromRoute)) {
+                return $fromRoute;
+            }
+        }
 
-        session()->put('scope', $scope);
-        app()->instance('currentScope', $scope);
-        view()->share('currentScope', $scope);
-
-        return $scope;
-    }
-
-    public function isValid(string $scope): bool
-    {
-        return $scope !== '' && (bool) preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $scope);
+        return $this->get();
     }
 }

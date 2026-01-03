@@ -1,0 +1,8 @@
+@layer components {
+  .card {
+    @apply bg-white border rounded-xl;
+  }
+  .card-p {
+    @apply p-5;
+  }
+}

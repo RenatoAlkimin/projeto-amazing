@@ -1,0 +1,66 @@
+@layer components {
+  .app-sidebar {
+    @apply w-16 shrink-0 min-h-screen flex flex-col
+           bg-slate-900 text-slate-200
+           border-r border-slate-800;
+  }
+
+  .app-sidebar__nav {
+    @apply flex-1 px-2 py-2 space-y-1;
+  }
+
+  .app-sidebar__divider {
+    @apply my-2 border-t border-slate-800;
+  }
+
+  .app-sidebar__item {
+    @apply relative flex items-center justify-center
+           h-11 rounded-xl transition
+           text-slate-200;
+  }
+
+  .app-sidebar__item:hover {
+    @apply bg-slate-800 text-white;
+  }
+
+  .app-sidebar__item.is-active {
+    @apply bg-slate-100 text-slate-900;
+  }
+
+  .app-sidebar__item.is-active:hover {
+    @apply bg-white text-slate-900;
+  }
+
+  /* Tooltip estilo HubSpot */
+  .app-sidebar__tooltip {
+    @apply pointer-events-none absolute left-[60px] top-1/2 -translate-y-1/2
+           whitespace-nowrap rounded-lg px-2 py-1 text-xs
+           bg-slate-900 text-slate-100
+           border border-slate-700 shadow-lg
+           opacity-0 translate-x-1 transition
+           z-50;
+  }
+
+  .app-sidebar__item:hover .app-sidebar__tooltip {
+    @apply opacity-100 translate-x-0;
+  }
+
+  /* Topo (logo/app) */
+  .app-sidebar__brand {
+    @apply px-2 pt-3 pb-2;
+  }
+
+  .app-sidebar__logo {
+    @apply w-11 h-11 rounded-xl bg-slate-800
+           flex items-center justify-center
+           font-bold text-white select-none;
+  }
+
+  .app-sidebar__bottom {
+    @apply px-2 py-3 border-t border-slate-800;
+  }
+
+  .app-sidebar__footer {
+    @apply text-[11px] text-slate-400 text-center;
+  }
+}

@@ -4,65 +4,140 @@ namespace App\Support\Context;
 
 class PortalContext
 {
+    /**
+     * Chave usada pelo middleware ResolvePortal
+     */
+    public const SESSION_KEY = 'portal';
+
+    /**
+     * (Opcional) compatibilidade caso algo antigo use essa key.
+     */
+    public const LEGACY_SESSION_KEY = 'amazing.portal';
+
+    /**
+     * @return string[]
+     */
     public function availablePortals(): array
     {
-        return array_keys(config('portals', []));
+        return array_keys((array) config('portals', []));
     }
 
     public function defaultPortal(): string
     {
-        return (string) config('amazing.default_portal', 'loja');
+        $portals = (array) config('portals', []);
+
+        // se você quiser controlar por config depois:
+        $configured = (string) config('amazing.default_portal', '');
+        if ($configured !== '' && array_key_exists($configured, $portals)) {
+            return $configured;
+        }
+
+        return array_key_first($portals) ?? 'amazing';
     }
 
+    public function set(string $portalId): void
+    {
+        if (!$this->exists($portalId)) {
+            $portalId = $this->defaultPortal();
+        }
+
+        session()->put(self::SESSION_KEY, $portalId);
+        session()->put(self::LEGACY_SESSION_KEY, $portalId); // compat
+    }
+
+    public function currentId(): string
+    {
+        $portals = (array) config('portals', []);
+
+        $portal = (string) session()->get(self::SESSION_KEY, '');
+        if ($portal !== '' && array_key_exists($portal, $portals)) {
+            return $portal;
+        }
+
+        // compat (caso algo tenha setado a legacy key)
+        $legacy = (string) session()->get(self::LEGACY_SESSION_KEY, '');
+        if ($legacy !== '' && array_key_exists($legacy, $portals)) {
+            // migra pro padrão
+            session()->put(self::SESSION_KEY, $legacy);
+            return $legacy;
+        }
+
+        return $this->defaultPortal();
+    }
+
+    /**
+     * Alias pra compat se algum lugar usar ->get()
+     */
     public function get(): string
     {
-        if (app()->bound('currentPortal')) {
-            return (string) app('currentPortal');
+        return $this->currentId();
+    }
+
+    public function currentConfig(): array
+    {
+        return (array) config('portals.' . $this->currentId(), []);
+    }
+
+    public function label(): string
+    {
+        return (string) ($this->currentConfig()['label'] ?? $this->currentId());
+    }
+
+    /**
+     * @return string[]
+     */
+    public function allowedModules(): array
+    {
+        $portalModules = (array) ($this->currentConfig()['modules'] ?? []);
+        $catalog = (array) config('modules', []);
+
+        if (in_array('*', $portalModules, true)) {
+            return array_keys($catalog);
         }
 
-        $portal = (string) session('portal', $this->defaultPortal());
-
-        return $this->isValid($portal) ? $portal : $this->defaultPortal();
-    }
-
-    public function set(string $portal): string
-    {
-        if (!$this->isValid($portal)) {
-            $portal = $this->defaultPortal();
+        $allowed = [];
+        foreach ($portalModules as $m) {
+            $m = (string) $m;
+            if ($m !== '' && array_key_exists($m, $catalog)) {
+                $allowed[] = $m;
+            }
         }
 
-        session()->put('portal', $portal);
-        app()->instance('currentPortal', $portal);
-        view()->share('currentPortal', $portal);
-
-        return $portal;
+        return array_values(array_unique($allowed));
     }
 
-    public function allowedModules(?string $portal = null): array
+    /**
+     * Verifica se um módulo está liberado para um portal específico.
+     * O middleware EnsureModuleEnabled chama isso.
+     */
+    public function allows(string $module, ?string $portalId = null): bool
     {
-        $portal ??= $this->get();
-        $allowed = config("portals.$portal.modules", []);
+        $portalId = $portalId ?: $this->currentId();
 
-        return is_array($allowed) ? $allowed : [];
+        $portals = (array) config('portals', []);
+        if (!array_key_exists($portalId, $portals)) {
+            $portalId = $this->defaultPortal();
+        }
+
+        // Se o módulo nem existe no catálogo, não libera.
+        $catalog = (array) config('modules', []);
+        if (!array_key_exists($module, $catalog)) {
+            return false;
+        }
+
+        $modules = (array) config("portals.{$portalId}.modules", []);
+
+        // Wildcard: acesso total
+        if (in_array('*', $modules, true)) {
+            return true;
+        }
+
+        return in_array($module, $modules, true);
     }
 
-    public function allows(string $module, ?string $portal = null): bool
+    private function exists(string $portalId): bool
     {
-        $allowed = $this->allowedModules($portal);
-
-        return in_array('*', $allowed, true) || in_array($module, $allowed, true);
-    }
-
-    public function homeRoute(?string $portal = null): ?string
-    {
-        $portal ??= $this->get();
-        $home = config("portals.$portal.home_route");
-
-        return is_string($home) && $home !== '' ? $home : null;
-    }
-
-    private function isValid(string $portal): bool
-    {
-        return in_array($portal, $this->availablePortals(), true);
+        $portals = (array) config('portals', []);
+        return $portalId !== '' && array_key_exists($portalId, $portals);
     }
 }

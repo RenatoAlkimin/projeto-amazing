@@ -5,7 +5,7 @@ return [
         'label' => 'Hub',
         'route' => 'hub.index',
         'permission' => null,
-        'icon' => 'grid',     // opcional
+        'icon' => 'grid',
         'order' => 10,
         'section' => 'principal',
     ],
@@ -28,12 +28,21 @@ return [
         'section' => 'principal',
     ],
 
-    'central' => [
-        'label' => 'Central',
-        'route' => 'central.index',
-        'permission' => 'central.view',
-        'icon' => 'settings',
+    'marketing' => [
+        'label' => 'Marketing',
+        'route' => 'marketing.index',
+        'permission' => null, // ou 'marketing.view'
+        'icon' => 'megaphone',
         'order' => 40,
-        'section' => 'admin',
+        'section' => 'principal',
+    ],
+
+    'rh' => [
+        'label' => 'RH',
+        'route' => 'rh.index',
+        'permission' => null, // ou 'rh.view'
+        'icon' => 'users',
+        'order' => 50,
+        'section' => 'principal',
     ],
 ];

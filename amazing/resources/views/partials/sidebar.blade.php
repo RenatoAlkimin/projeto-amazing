@@ -1,11 +1,5 @@
 @php
   $sections = $sidebarSections ?? [];
-
-  $scope = $currentScope ?? (request()->route('scope') ?? 'default');
-
-  // compat: se ainda existir $currentPortal (array)
-  $portalLabel = $currentPortalLabel
-    ?? ($currentPortal['label'] ?? 'Amazing');
 @endphp
 
 <aside class="app-sidebar">
@@ -35,8 +29,6 @@
   </nav>
 
   <div class="app-sidebar__bottom">
-    <div class="app-sidebar__footer">
-      {{ $portalLabel }} • {{ $scope }}
-    </div>
+    <div class="app-sidebar__footer">Amazing • v0</div>
   </div>
 </aside>

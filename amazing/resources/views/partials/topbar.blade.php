@@ -1,6 +1,9 @@
 @php
   $scope = $currentScope ?? (request()->route('scope') ?? 'default');
-  $portalLabel = $currentPortal['label'] ?? 'Amazing';
+
+  // preferir strings prontas se você já tiver no composer
+  $portalLabel = $currentPortalLabel
+    ?? ($currentPortal['label'] ?? 'Amazing');
 @endphp
 
 <header class="app-topbar">

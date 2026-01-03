@@ -5,6 +5,7 @@
            flex items-center;
   }
 
+  /* slot alinhado com a sidebar (mesma largura) */
   .app-topbar__slot {
     @apply w-16 flex items-center justify-center;
   }

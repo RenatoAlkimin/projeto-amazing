@@ -6,7 +6,7 @@
 **Arquivo canônico:** `docs/arquitetura.md`  
 **Última atualização:** 03/01/2026  
 **Status:** UI-only (Fase 1) • **Fonte de verdade:** este arquivo + `docs/adr/`  
-**Escopo:** organização de rotas, portais, módulos, sidebar e convenções (sem regra de negócio).
+**Escopo:** organização de rotas, portais, módulos, sidebar, front-end e convenções (sem regra de negócio).
 
 ---
 
@@ -21,12 +21,13 @@
 8. Contexto unificado (Portal e Scope)
 9. Sidebar governada por config (sem hardcode)
 10. Controllers e Views
-11. UI / Design System (mínimo viável)
-12. Ambiente local (UI-only) — recomendado
-13. Testes (baratos e que evitam typo)
-14. Como adicionar um novo módulo
-15. Fase 2 (contratos sem implementar)
-16. ADRs (referência)
+11. Front-end (Vite + Tailwind v4 + Layout)
+12. UI / Design System (mínimo viável)
+13. Ambiente local (UI-only) — recomendado
+14. Testes (baratos e que evitam typo)
+15. Como adicionar um novo módulo
+16. Fase 2 (contratos sem implementar)
+17. ADRs (referência)
 
 ---
 
@@ -46,8 +47,9 @@
 
 ## 2) Stack
 - **Laravel 12 + Blade**
-- **Tailwind CSS**
-- **Vite**
+- **Tailwind CSS v4 (via Vite)**  
+  - usa `@import 'tailwindcss'`, `@source`, `@theme`, `@layer`, `@apply`
+- **Vite + laravel-vite-plugin + @tailwindcss/vite**
 - Dev local via **Herd** (`*.test`)
 
 ---
@@ -97,22 +99,25 @@ Na Fase 2 vira contexto real (loja, franqueado, regional etc).
 ## 5) Rotas e organização
 
 ### 5.1 Pastas e arquivos
-```
 amazing/routes/
-  web.php
-  groups/
-    amazing.php
-    franchising.php
-    franqueado.php
-    franqueado_central.php
-    loja.php
-    scoped_modules.php
-  modules/
-    hub.php
-    comercial.php
-    financeiro.php
-    central.php
-```
+web.php
+groups/
+amazing.php
+franchising.php
+franqueado.php
+franqueado_central.php
+loja.php
+scoped_modules.php
+modules/
+hub.php
+comercial.php
+financeiro.php
+central.php
+marketing.php
+rh.php
+
+markdown
+Copiar código
 
 ### 5.2 `amazing/routes/web.php` (agregador)
 - Importa os portais (rotas de entrada por painel)
@@ -168,7 +173,7 @@ Para evitar divergência de regras (e bugs chatos), o sistema usa **classes de c
   - resolve portal atual (app/session)
   - valida portais disponíveis
   - aplica wildcard/allowlist de módulos
-  - expõe `homeRoute()` do portal
+  - expõe informações úteis (label, módulos permitidos)
 - `amazing/app/Support/Context/ScopeContext.php`
   - resolve scope atual (rota/session)
   - validação básica (regex) no UI-only
@@ -205,77 +210,212 @@ Registro (View Composer):
 
 View:
 - `amazing/resources/views/partials/sidebar.blade.php`
-  - pode agrupar por `section` (ex.: principal/admin)
-  - recomendado mostrar `Portal` e `Scope` no header (ajuda muito em demo)
 
 ---
 
 ## 10) Controllers e Views
 - Controllers: `amazing/app/Http/Controllers/<Modulo>/...`
-- Views: `amazing/resources/views/<modulo>/...`
+- Views: `amazing/resources/views/modules/<modulo>/...`
 - Layout base: `amazing/resources/views/layouts/app.blade.php`
 
 **Regra Fase 1:**
 - Controller monta **dados fake** e escolhe view
 - Sem regra de negócio (se começar a “pensar demais”, você saiu da Fase 1 😄)
 
----
+**Regra importante (front):**
+- Views de módulos **NÃO** devem ter `<!doctype html>`, `<head>`, `<body>`.
+- Devem usar:
+  - `@extends('layouts.app')`
+  - `@section('content')`
 
-## 11) UI / Design System (mínimo viável)
-Estratégia:
-- Tailwind para composição rápida
-- Componentes Blade para reutilização
-
-Local sugerido:
-- `amazing/resources/views/components/ui/`
-
-Componentes recomendados:
-- `ui/button`, `ui/card`, `ui/badge`
-- `ui/page-header` (título + ações + breadcrumbs opcional)
-- `ui/table` (toolbar + paginação fake)
-- `ui/empty-state` (vai aparecer muito)
-
-Regra prática:
-- Se repetiu 2x (com pequenas variações), vira componente.
+Isso garante:
+- carregamento de CSS/JS via Vite
+- sidebar/topbar consistentes
+- navegação uniforme
 
 ---
 
-## 12) Ambiente local (UI-only) — recomendado
-Para reduzir fricção no protótipo:
-- `APP_URL=http://amazing.test`
-- `APP_LOCALE=pt_BR` / `APP_FALLBACK_LOCALE=pt_BR` / `APP_FAKER_LOCALE=pt_BR`
-- `QUEUE_CONNECTION=sync` (sem worker)
-- `CACHE_STORE=file` (sem tabela de cache)
-- `AMAZING_ALLOW_PORTAL_QUERY_SWITCH=true` (apenas local)
+## 11) Front-end (Vite + Tailwind v4 + Layout)
 
-> Observação: `QUEUE_CONNECTION=database` e `CACHE_STORE=database` exigem tabelas/migrations e tendem a gerar “erro do nada” no UI-only.
+### 11.1 Objetivo
+Ter um front-end “SaaS” consistente (layout único + componentes) e com fricção baixa em dev (hot reload), sem virar um framework SPA na Fase 1.
 
----
+### 11.2 Vite (fonte de verdade)
+- Config:
+  - `amazing/vite.config.js`
+- Entrypoints:
+  - `amazing/resources/css/app.css`
+  - `amazing/resources/js/app.js`
 
-## 13) Testes (baratos e que evitam typo)
-Teste de integridade recomendado:
-- `amazing/tests/Feature/ConfigIntegrityTest.php`
-  - valida que `portals.*.modules` referencia módulos existentes (exceto `'*'`)
-  - valida que `modules.*.route` existe (`Route::has()`)
+No `vite.config.js`, plugins:
+- `laravel-vite-plugin` (integra com Blade)
+- `@tailwindcss/vite` (Tailwind v4)
 
-Comando:
+### 11.3 Tailwind v4 (como funciona aqui)
+O Tailwind v4 usa:
+- `@import 'tailwindcss'`
+- `@source` para scan de templates
+- `@theme` para tokens
+- `@layer` + `@apply` para componentes utilitários
+
+Arquivo principal:
+- `amazing/resources/css/app.css` (**manifest**)
+
+### 11.4 Organização de CSS (profissional e simples)
+Estrutura recomendada:
+amazing/resources/css/
+app.css
+theme.css
+base.css
+layouts/
+header.css
+sidebar.css
+components/
+buttons.css
+cards.css
+forms.css
+badges.css
+pages/ (opcional)
+
+markdown
+Copiar código
+
+Regras:
+- **Tailwind no Blade** para layout/spacing rápido
+- `components/` para padrões reutilizáveis (`.btn`, `.card`, etc.)
+- `layouts/` para estrutura (topbar/sidebar/shell)
+- `pages/` só quando inevitável
+
+### 11.5 Layout conectado (HubSpot-like)
+O layout global é:
+- `amazing/resources/views/layouts/app.blade.php`
+
+E inclui:
+- `amazing/resources/views/partials/topbar.blade.php`
+- `amazing/resources/views/partials/sidebar.blade.php`
+
+O layout conecta topbar + sidebar (mesma “faixa” visual), com conteúdo em fundo claro.
+
+### 11.6 Ícones (componente Blade)
+Para ícones do rail da sidebar:
+- `amazing/resources/views/components/icon.blade.php`
+- Uso:
+  - `<x-icon name="grid" class="w-5 h-5" />`
+
+Os ícones são dirigidos por:
+- `amazing/config/modules.php` → campo `icon`
+
+### 11.7 Carregamento do CSS/JS (regra de ouro)
+No `<head>` do layout:
+- `@vite(['resources/css/app.css', 'resources/js/app.js'])`
+
+**Não usar condicional** para `@vite` no protótipo, para evitar “CSS sumiu” em dev.
+
+### 11.8 Dev vs Build (muito importante)
+Em desenvolvimento (hot reload):
 ```bash
 cd amazing
+npm install
+npm run dev
+Em modo estático (sem dev server):
+
+bash
+Copiar código
+cd amazing
+npm run build
+Atenção: se existir public/hot, o Laravel tentará carregar assets do dev server.
+Se você rodar build e quiser modo estático, remova o hot:
+
+bash
+Copiar código
+rm public/hot
+(ou equivalente no Windows PowerShell)
+
+11.9 VS Code (qualidade de vida)
+Tailwind v4 usa at-rules que o linter CSS do VS Code pode marcar como “Unknown at rule”.
+Isso não quebra o build — é só diagnóstico do editor.
+
+Sugestão local:
+
+instalar Tailwind CSS IntelliSense
+
+opcional: .vscode/settings.json com css.lint.unknownAtRules = ignore
+
+12) UI / Design System (mínimo viável)
+Estratégia:
+
+Tailwind para composição rápida
+
+Componentes Blade para reutilização (quando repetiu 2x, vira componente)
+
+Locais sugeridos:
+
+amazing/resources/views/components/ (ex.: icon)
+
+amazing/resources/views/components/ui/ (quando crescer)
+
+Componentes recomendados:
+
+ui/button, ui/card, ui/badge
+
+ui/page-header (título + ações + breadcrumbs opcional)
+
+ui/table (toolbar + paginação fake)
+
+ui/empty-state (vai aparecer muito)
+
+Regra prática:
+
+Se repetiu 2x (com pequenas variações), vira componente.
+
+13) Ambiente local (UI-only) — recomendado
+Para reduzir fricção no protótipo:
+
+APP_URL=http://amazing.test
+
+APP_LOCALE=pt_BR / APP_FALLBACK_LOCALE=pt_BR / APP_FAKER_LOCALE=pt_BR
+
+QUEUE_CONNECTION=sync (sem worker)
+
+CACHE_STORE=file (sem tabela de cache)
+
+AMAZING_ALLOW_PORTAL_QUERY_SWITCH=true (apenas local)
+
+Front-end:
+
+npm run dev durante desenvolvimento
+
+npm run build para modo estático
+
+Observação: QUEUE_CONNECTION=database e CACHE_STORE=database exigem tabelas/migrations e tendem a gerar “erro do nada” no UI-only.
+
+14) Testes (baratos e que evitam typo)
+Teste de integridade recomendado:
+
+amazing/tests/Feature/ConfigIntegrityTest.php
+
+valida que portals.*.modules referencia módulos existentes (exceto '*')
+
+valida que modules.*.route existe (Route::has())
+
+Comando:
+
+bash
+Copiar código
+cd amazing
 php artisan test
-```
+15) Como adicionar um novo módulo
+Exemplo: módulo relatorios.
 
----
-
-## 14) Como adicionar um novo módulo
-
-Exemplo: módulo `relatorios`.
-
-### 14.1 Criar rota do módulo
+15.1 Criar rota do módulo
 Arquivo:
-- `amazing/routes/modules/relatorios.php`
+
+amazing/routes/modules/relatorios.php
 
 Template (padrão):
-```php
+
+php
+Copiar código
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -287,50 +427,67 @@ Route::middleware(['module_enabled:relatorios'])
     ->group(function () {
         Route::get('/', [RelatoriosController::class, 'index'])->name('index');
     });
-```
+15.2 Importar o módulo em routes/groups/scoped_modules.php
+incluir require do arquivo do módulo
 
-### 14.2 Importar o módulo em `routes/groups/scoped_modules.php`
-- incluir `require` do arquivo do módulo
+15.3 Criar controller e view (UI-only)
+Controller: amazing/app/Http/Controllers/Relatorios/RelatoriosController.php
 
-### 14.3 Criar controller e view (UI-only)
-- Controller: `amazing/app/Http/Controllers/Relatorios/RelatoriosController.php` (opcional no protótipo)
-- View: `amazing/resources/views/relatorios/index.blade.php`
+View: amazing/resources/views/modules/relatorios/index.blade.php
 
-> No UI-only, o controller pode retornar mock simples; quando entrar regra real, ele vira o ponto de encaixe natural.
+Lembrete do front:
 
-### 14.4 Registrar no catálogo (`config/modules.php`)
+a view deve @extends('layouts.app') e usar @section('content').
+
+15.4 Registrar no catálogo (config/modules.php)
 Adicionar:
-- `label`
-- `route` (`relatorios.index`)
-- `order`
-- `section` (opcional)
-- `icon` (opcional)
-- `permission` (futuro)
 
-### 14.5 Permitir no(s) portal(is) (`config/portals.php`)
-- adicionar `relatorios` no `modules` do portal desejado (ou garantir `'*'`)
+label
 
-### 14.6 Checklist de validação
-- `php artisan route:list | findstr relatorios`
-- Acessar: `http://amazing.test/s/default/relatorios`
-- Validar:
-  - aparece no menu do portal correto
-  - URL direta dá 403 quando módulo não está permitido
+route (relatorios.index)
 
----
+order
 
-## 15) Fase 2 (contratos sem implementar)
-- Autenticação real
-- RBAC por scope (loja/franqueado/central)
-- Hierarquia viva (Org Units)
-- Auditoria de mudanças de acesso
-- Filas (workers) e processamento assíncrono pesado
-- Integrações (serviços externos, bancos, storage de anexos)
+section (opcional)
 
----
+icon (opcional)
 
-## 16) ADRs (referência)
-Os ADRs vivem em `docs/adr/` e registram as decisões principais:
-- **ADR 0001** — Módulos escopados em `/s/{scope}`
-- **ADR 0002** — Portal (Group) controla macro-acesso a módulos
-- **ADR 0003** — Sidebar derivada de config (sem hardcode)
+permission (futuro)
+
+15.5 Permitir no(s) portal(is) (config/portals.php)
+adicionar relatorios no modules do portal desejado (ou garantir '*')
+
+15.6 Checklist de validação
+php artisan route:list | findstr relatorios
+
+Acessar: http://amazing.test/s/default/relatorios
+
+Validar:
+
+aparece no menu do portal correto
+
+URL direta dá 403 quando módulo não está permitido
+
+16) Fase 2 (contratos sem implementar)
+Autenticação real
+
+RBAC por scope (loja/franqueado/central)
+
+Hierarquia viva (Org Units)
+
+Auditoria de mudanças de acesso
+
+Filas (workers) e processamento assíncrono pesado
+
+Integrações (serviços externos, bancos, storage de anexos)
+
+17) ADRs (referência)
+Os ADRs vivem em docs/adr/ e registram as decisões principais:
+
+ADR 0001 — Módulos escopados em /s/{scope}
+
+ADR 0002 — Portal (Group) controla macro-acesso a módulos
+
+ADR 0003 — Sidebar derivada de config (sem hardcode)
+
+ADR 0004 — Front-end via Vite + Tailwind v4 (layout único + partials)

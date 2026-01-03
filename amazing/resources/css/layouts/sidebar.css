@@ -1,6 +1,6 @@
 @layer components {
   .app-sidebar {
-    @apply w-16 shrink-0 min-h-screen flex flex-col
+    @apply w-16 shrink-0 h-full flex flex-col
            bg-slate-900 text-slate-200
            border-r border-slate-800;
   }
@@ -43,17 +43,6 @@
 
   .app-sidebar__item:hover .app-sidebar__tooltip {
     @apply opacity-100 translate-x-0;
-  }
-
-  /* Topo (logo/app) */
-  .app-sidebar__brand {
-    @apply px-2 pt-3 pb-2;
-  }
-
-  .app-sidebar__logo {
-    @apply w-11 h-11 rounded-xl bg-slate-800
-           flex items-center justify-center
-           font-bold text-white select-none;
   }
 
   .app-sidebar__bottom {

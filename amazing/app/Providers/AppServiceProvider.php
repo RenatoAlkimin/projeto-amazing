@@ -4,6 +4,15 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
+use Illuminate\Support\Facades\View;
+use App\View\Composers\SidebarComposer;
+
+public function boot(): void
+{
+    View::composer('partials.sidebar', SidebarComposer::class);
+}
+
+
 class AppServiceProvider extends ServiceProvider
 {
     /**

@@ -45,4 +45,15 @@ return [
         'order' => 50,
         'section' => 'principal',
     ],
+
+    'diagnostics' => [
+         'label' => 'Diagnostics',
+         'route' => 'diagnostics.index',
+         'section' => 'Dev',
+         'order' => 999,
+         'icon' => 'wrench', // usa o que teu <x-icon> suportar
+         'permission' => 'diagnostics.view', // futuro (fase 2)
+    ],
+
+
 ];

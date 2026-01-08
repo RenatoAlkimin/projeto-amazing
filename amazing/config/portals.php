@@ -4,7 +4,7 @@ return [
     'amazing' => [
         'label' => 'Painel Amazing',
         'home_route' => 'amazing.home',
-        'modules' => ['hub', 'comercial', 'financeiro', 'marketing', 'rh'],
+        'modules' => ['hub', 'comercial', 'financeiro', 'marketing', 'rh',  'diagnostics' ],
     ],
 
     'franchising' => [

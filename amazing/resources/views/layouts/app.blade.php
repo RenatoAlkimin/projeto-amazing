@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>@yield('title', 'Amazing')</title>
 
-  {{-- Vite / Tailwind --}}
-  @vite(['resources/css/app.css', 'resources/js/app.js'])
+  {{-- Vite / Tailwind (não roda no ambiente de testes pra não exigir manifest) --}}
+  @unless(app()->environment('testing'))
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+  @endunless
 </head>
 
 <body class="app-shell text-gray-900">
@@ -34,7 +36,10 @@
             </div>
 
             <div class="text-xs text-gray-500">
-              Scope: <span class="font-mono">{{ request()->route('scope') ?? 'default' }}</span>
+              @php
+                $scope = request()->route('scope') ?? config('amazing.default_scope', 'default');
+              @endphp
+              Scope: <span class="font-mono">{{ $scope }}</span>
             </div>
           </div>
         </header>

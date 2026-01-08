@@ -25,10 +25,15 @@ class ScopeContext
         return $scope !== '' && (bool) preg_match(self::SCOPE_REGEX, $scope);
     }
 
+    private function defaultScope(): string
+    {
+        return (string) config('amazing.default_scope', 'default');
+    }
+
     public function set(string $scope): void
     {
         if (!$this->isValid($scope)) {
-            $scope = 'default';
+            $scope = $this->defaultScope();
         }
 
         session()->put(self::SESSION_KEY, $scope);
@@ -50,7 +55,7 @@ class ScopeContext
             return $legacy;
         }
 
-        return 'default';
+        return $this->defaultScope();
     }
 
     /**

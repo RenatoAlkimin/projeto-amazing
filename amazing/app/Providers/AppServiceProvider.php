@@ -15,13 +15,12 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Contextos (por request)
-        $this->app->singleton(PortalContext::class, fn () => new PortalContext());
+        // Contextos por request (safe pra Octane/long-running)
+        $this->app->scoped(PortalContext::class, fn () => new PortalContext());
 
-        $this->app->singleton(ScopeContext::class, function (Application $app) {
+        $this->app->scoped(ScopeContext::class, function (Application $app) {
             /** @var Request $request */
             $request = $app->make(Request::class);
-
             return new ScopeContext($request);
         });
 

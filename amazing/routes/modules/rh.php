@@ -2,8 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['module_enabled:rh'])
-    ->prefix('rh')
+Route::prefix('rh')
     ->as('rh.')
     ->group(function () {
         Route::get('/', function () {

@@ -3,6 +3,14 @@
 
   $portalLabel = $currentPortalLabel
     ?? ($currentPortal['label'] ?? 'Amazing');
+
+  // Evita erro no php artisan test quando não existe public/build/manifest.json
+  try {
+      $logoUrl = Vite::asset('resources/images/icon-vaapty.png');
+  } catch (\Throwable $e) {
+      // fallback (coloque o arquivo em: public/images/icon-vaapty.png)
+      $logoUrl = asset('images/icon-vaapty.png');
+  }
 @endphp
 
 <header class="app-topbar">
@@ -10,7 +18,7 @@
   <div class="app-topbar__slot">
     <a href="{{ route('hub.index', ['scope' => $scope]) }}" class="app-topbar__brand" title="Ir para o Hub">
       <img
-        src="{{ Vite::asset('resources/images/icon-vaapty.png') }}"
+        src="{{ $logoUrl }}"
         alt="Vaapty"
         class="app-topbar__logo"
       />

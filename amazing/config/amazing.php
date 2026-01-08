@@ -6,4 +6,8 @@ return [
 
     // Permite trocar portal via ?portal=... (somente em dev)
     'allow_portal_query_switch' => env('AMAZING_ALLOW_PORTAL_QUERY_SWITCH', false),
+
+    // ✅ Só dev/staging. Em produção fica false.
+    'enable_diagnostics' => env('AMAZING_ENABLE_DIAGNOSTICS', false),
+
 ];

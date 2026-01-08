@@ -8,28 +8,26 @@ use Illuminate\Http\Request;
 
 class ResolvePortal
 {
-    public function __construct(private PortalContext $portal)
-    {
-    }
+    public function __construct(private PortalContext $portal) {}
 
     public function handle(Request $request, Closure $next)
     {
         $available = $this->portal->availablePortals();
 
-        // DEV-ONLY switch via query param (controle pra não vazar pra prod)
-        $fromQuery = $request->query('portal');
+        $fromQuery = (string) $request->query('portal', '');
+
         $allowQuerySwitch =
-            app()->environment('local')
+            app()->environment(['local', 'testing'])
             && (bool) config('amazing.allow_portal_query_switch', false);
 
-        if ($allowQuerySwitch && $fromQuery && in_array($fromQuery, $available, true)) {
+        // DEV/TEST-only: troca via query param
+        if ($allowQuerySwitch && $fromQuery !== '' && in_array($fromQuery, $available, true)) {
             $this->portal->set($fromQuery);
             return $next($request);
         }
 
-        // Sessão / fallback
-        $current = (string) $request->session()->get('portal', $this->portal->defaultPortal());
-        $this->portal->set($current);
+        // Normaliza: garante que o portal atual é válido e fica persistido em sessão
+        $this->portal->set($this->portal->currentId());
 
         return $next($request);
     }

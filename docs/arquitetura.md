@@ -4,7 +4,7 @@
 > Objetivo: manter **navegação, UI e governança** consistentes enquanto o sistema evolui para a Fase 2 (auth/RBAC/DB/integrações).
 
 **Arquivo canônico:** `docs/arquitetura.md`  
-**Última atualização:** 03/01/2026  
+**Última atualização:** 08/01/2026  
 **Status:** UI-only (Fase 1) • **Fonte de verdade:** este arquivo + `docs/adr/`  
 **Escopo:** organização de rotas, portais, módulos, sidebar, front-end e convenções (sem regra de negócio).
 
@@ -62,7 +62,7 @@
 
 ## 4) Conceitos
 
-### 4.1 Portal (Group)
+### 4.1 Portal
 **Portal** representa o “tipo de painel” (macro-contexto):
 - `amazing`, `franchising`, `franqueado`, `franqueado_central`, `loja`
 
@@ -101,7 +101,7 @@ Na Fase 2 vira contexto real (loja, franqueado, regional etc).
 ```text
 amazing/routes/
   web.php
-  groups/
+  portals/
     amazing.php
     franchising.php
     franqueado.php
@@ -110,6 +110,7 @@ amazing/routes/
     scoped_modules.php
   modules/
     hub.php
+    diagnostics.php
     comercial.php
     financeiro.php
     central.php
@@ -117,20 +118,23 @@ amazing/routes/
     rh.php
 ```
 
+> Nota: a pasta `routes/portals/` era chamada `routes/groups/`. Renomeamos para **portals** para deixar explícito que esses arquivos são as rotas de entrada por portal (e evitar confusão com “route groups” do Laravel). (Ver ADR0006)
+
 ### 5.2 `amazing/routes/web.php` (agregador)
 - Importa os portais (rotas de entrada por painel)
 - Importa os módulos escopados (onde o “trabalho” acontece)
 
-### 5.3 `amazing/routes/groups/*.php` (portais)
+### 5.3 `amazing/routes/portals/*.php` (portais)
 - Define rotas de entrada por portal (ex.: `/loja`)
 - No protótipo, o portal pode ser setado na sessão (modo debug)
 - Recomendação: após setar o portal, **redirecionar para** `route('hub.index', ['scope' => 'default'])`
 
-### 5.4 `amazing/routes/groups/scoped_modules.php`
+### 5.4 `amazing/routes/portals/scoped_modules.php`
 - Define prefixo: `s/{scope}`
 - Aplica middlewares:
   - `resolve_portal` (portal atual)
   - `set_scope` (scope atual)
+  - *(por módulo)* `module_enabled:{módulo}` (`App\Http\Middleware\EnsureModuleEnabled`) — bloqueia acesso quando o módulo está desabilitado no config
 - Importa as rotas dos módulos
 
 ---
@@ -153,13 +157,27 @@ amazing/routes/
   - `modules` lista o que o portal pode acessar
   - `'*'` significa **acesso total** (a todos os módulos do catálogo)
 - `amazing/config/modules.php`
-  - metadados: `label`, `route`, `order`, `section`, `icon`, `permission` (futuro)
+  - metadados: `label`, `route`, `order`, `section`, `icon`, `enabled` (feature flag), `permission` (futuro)
 
 ### 7.2 Enforcement (segurança)
 - Middleware `module_enabled:<modulo>` em cada módulo
 - Bloqueia acesso por URL direta quando o portal não permite (resposta 403)
 
 > Regra de ouro: **a mesma lógica de allowlist/wildcard deve ser usada na sidebar e no middleware**.
+
+### 7.3 Módulos internos (dev-only): `diagnostics`
+Alguns módulos existem apenas para **verificação do protótipo** e não fazem parte do produto final.
+
+Padrão recomendado:
+- Módulo: `diagnostics` (`diagnostics.index` em `/s/{scope}/diagnostics`)
+- Visível/apenas permitido no portal **`amazing`** (painel dev)
+- **Feature flag** para habilitar/desabilitar:
+  - `amazing/config/amazing.php` → `enable_diagnostics`
+  - `.env` (local) → `AMAZING_ENABLE_DIAGNOSTICS=true`
+- Quando desabilitado, deve responder **404** e não aparecer na sidebar.
+
+Isso mantém o “painel dev” profissional (observabilidade e sanity checks) sem vazar para outros portais.
+
 
 ---
 
@@ -196,6 +214,7 @@ Builder:
   - ordena por `section` + `order`
   - gera URL via `route(<rota>, ['scope' => <scope>])`
   - marca ativo com `request()->routeIs('<modulo>.*')`
+  - filtra módulos desabilitados por feature flag (ex.: `diagnostics`)
   - (futuro) filtra também por permissão fina (`can(...)`)
 
 Composer:
@@ -365,13 +384,22 @@ Observações importantes:
 - Rodapé pode exibir badge “Beta” quando aplicável
 
 ### 11.6 Branding (logo)
-Logo usada no canto superior esquerdo:
-- Arquivo:
-  - `amazing/resources/images/icon-vaapty.png`
-- Uso no Blade:
-  - `Vite::asset('resources/images/icon-vaapty.png')`
+- Quando você quer versionamento/hash do asset, mantenha em `resources/images` e referencie via `Vite::asset(...)`.
+- Em ambientes onde o *build* do front não roda (ex.: máquina limpa / testes sem `npm run build`), chamadas ao Vite podem falhar por falta do `public/build/manifest.json`.
 
-Observação: em dev, garanta Vite rodando (`npm run dev`) para servir assets corretamente.
+**Padrão recomendado**
+1) Tenha um fallback do logo em `public/images/icon-vaapty.png` (ou equivalente).  
+2) No Blade, escolha entre Vite e fallback com base na existência do manifest:
+
+```blade
+@php
+  $logo = file_exists(public_path('build/manifest.json'))
+    ? Vite::asset('resources/images/icon-vaapty.png')
+    : asset('images/icon-vaapty.png');
+@endphp
+
+<img src="{{ $logo }}" alt="Vaapty" class="app-topbar__logo" />
+```
 
 ### 11.7 Ícones (componente Blade)
 Para ícones do rail da sidebar:
@@ -389,7 +417,11 @@ No `<head>` do layout:
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 ```
 
-Não usar condicional para `@vite` no protótipo, para evitar “CSS sumiu” em dev.
+**Regra do projeto**
+- Em **dev**, manter `@vite(...)` (para hot reload e consistência de UI).
+- Em **CI**, o pipeline deve garantir `npm ci && npm run build` antes de `php artisan test` (ver 14.4).
+
+> Se você quiser rodar testes sem build do front (modo rápido/local), documentamos a alternativa em 14.4 — mas isso não é o padrão recomendado para CI.
 
 ### 11.9 Dev vs Build (muito importante)
 Em desenvolvimento (hot reload):
@@ -410,9 +442,18 @@ npm run build
 Atenção: se existir `public/hot`, o Laravel tentará carregar assets do dev server.  
 Se você rodar build e quiser modo estático, remova o hot:
 
-```bash
-rm public/hot
-```
+- macOS/Linux/Git Bash:
+  ```bash
+  rm public/hot
+  ```
+- PowerShell:
+  ```powershell
+  Remove-Item public/hot -ErrorAction SilentlyContinue
+  ```
+- CMD:
+  ```bat
+  del public\hot
+  ```
 
 ### 11.10 VS Code (qualidade de vida)
 Tailwind v4 usa at-rules que o linter CSS do VS Code pode marcar como “Unknown at rule”.  
@@ -452,6 +493,7 @@ Para reduzir fricção no protótipo:
 - `QUEUE_CONNECTION=sync` (sem worker)
 - `CACHE_STORE=file` (sem tabela de cache)
 - `AMAZING_ALLOW_PORTAL_QUERY_SWITCH=true` (apenas local)
+- `AMAZING_ENABLE_DIAGNOSTICS=true` (opcional/local — habilita o módulo Diagnostics)
 
 Front-end:
 - `npm run dev` durante desenvolvimento
@@ -461,91 +503,173 @@ Observação: `QUEUE_CONNECTION=database` e `CACHE_STORE=database` exigem tabela
 
 ---
 
-## 14) Testes (baratos e que evitam typo)
+## 14) Testes
 
-### Teste de integridade recomendado
-- `amazing/tests/Feature/ConfigIntegrityTest.php`
-  - valida que `portals.*.modules` referencia módulos existentes (exceto `'*'`)
-  - valida que `modules.*.route` existe (`Route::has()`)
-
-Comando:
+### 14.1 Executar a suíte
+Comandos usuais:
 
 ```bash
-cd amazing
 php artisan test
 ```
+
+Quando você mexer em Blade e aparecer comportamento “estranho” de cache/compilação (principalmente em Windows), rode:
+
+```bash
+php artisan view:clear
+```
+
+### 14.1.1 Sanity check rápido (PowerShell)
+Quando você quiser garantir que “tudo está de pé” (config/rotas/views/testes) em uma máquina limpa:
+
+```powershell
+php artisan optimize:clear
+php artisan route:list --path=s
+php artisan test
+```
+
+### 14.2 `Tests\Feature\ConfigIntegrityTest`
+Esse teste garante que a “arquitetura por configuração” não ficou inconsistente.
+
+Coberturas típicas:
+- Portais referenciam apenas módulos existentes (ex.: `config/portals.php` → `modules`).
+- Cada módulo configurado tem **rota base** e a rota está registrada.
+- Cada módulo configurado possui **arquivo de rotas** — evita “módulo aparece no menu mas não tem rotas”.
+
+### 14.3 `Tests\Feature\ExampleTest`
+O `ExampleTest` valida que a rota raiz (`GET /`) responde com sucesso (200) seguindo redirects.
+
+Para manter esse teste estável:
+- Garanta que exista um comportamento definido para `/` (normalmente redirect para o Hub em `default`):
+  - `return redirect()->route('hub.index', ['scope' => 'default']);`
+- Evite que o layout/quaisquer parciais quebrem em ambiente de teste por dependências de front-end.
+
+### 14.4 Vite em ambiente de teste (manifest)
+Erros do tipo **“Vite manifest not found at: public/build/manifest.json”** acontecem quando o front não foi compilado e algum Blade tenta resolver assets via Vite.
+
+**Padrão recomendado (CI) — compilar o front antes dos testes**
+- `npm ci`
+- `npm run build`
+- `php artisan test`
+
+**Alternativa (rápido/local) — testes sem build do front**
+- Garanta fallback para assets (ex.: logo em `public/images`) e evite chamar `Vite::asset(...)` quando não houver manifest.
+- Se ainda assim precisar, você pode evitar renderizar as tags do Vite em testes:
+  - `@if (! app()->runningUnitTests()) @vite([...]) @endif`
+
+> Regra: **CI deve usar o padrão recomendado**. A alternativa existe só para reduzir fricção local quando Node não está disponível.
+
+### 14.5 `Tests\Feature\PortalModuleAccessTest` (governança por portal + Diagnostics)
+Esse teste é um “smoke test” barato para garantir que **portal → módulos → sidebar** não divergiram.
+
+Ele valida:
+- **Matriz de acesso por portal**: para cada portal, cada módulo configurado deve responder:
+  - `200` quando o portal permite (allowlist ou `'*'`)
+  - `403` quando o portal não permite (enforced pelo middleware `module_enabled:<modulo>`)
+- **Diagnostics desabilitado = 404**: quando `amazing.enable_diagnostics=false`, a rota `diagnostics.index` deve retornar `404` (o módulo “some do mapa”).
+- **Sidebar consistente**: quando habilitado, o item “Diagnostics” aparece **somente** no portal `amazing`.
+
+Regras práticas para manter estável:
+- O teste costuma habilitar temporariamente `amazing.allow_portal_query_switch=true` para conseguir alternar portal via `?portal=...` durante o request.
+- Para o “Diagnostics desabilitado = 404”, o gate deve acontecer **antes** do check de portal (ex.: middleware/route guard dedicado), para evitar `403` quando o módulo está desligado.
 
 ---
 
 ## 15) Como adicionar um novo módulo
-Exemplo: módulo `relatorios`.
 
-### 15.1 Criar rota do módulo
-Arquivo:
-- `amazing/routes/modules/relatorios.php`
+### 15.1 Checklist (passo a passo)
+1) **Adicionar no catálogo de módulos**
+   - `amazing/config/modules.php`
+   - Defina pelo menos:
+     - `label` (nome no menu)
+     - `route` (ex.: `marketing.index`)
+     - `section` (agrupamento na sidebar)
+     - `order` (ordem na seção)
+     - `icon` (ex.: `grid`, `chart`, etc.)
 
-Template (padrão):
+2) **Criar arquivo de rotas do módulo**
+   - `amazing/routes/modules/<modulo>.php`
+   - Padrão:
+     - `prefix('<modulo>')`
+     - `as('<modulo>.')`
+     - rota de entrada com `->name('index')`
 
-```php
-<?php
+3) **Garantir que o agregador importe o arquivo**
+   - Se o seu `scoped_modules.php` lista os módulos manualmente, inclua o novo arquivo lá.
+   - Se ele já faz import dinâmico (por config), apenas garanta que o arquivo exista com o nome esperado.
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Relatorios\RelatoriosController;
+4) **Criar controller e view**
+   - Controller: `amazing/app/Http/Controllers/<Modulo>/<Modulo>Controller.php` (ou equivalente)
+   - View: `amazing/resources/views/modules/<modulo>/index.blade.php`
+   - A view deve **estender** `layouts.app` e renderizar conteúdo dentro de `@section('content')`.
 
-Route::middleware(['module_enabled:relatorios'])
-    ->prefix('relatorios')
-    ->as('relatorios.')
-    ->group(function () {
-        Route::get('/', [RelatoriosController::class, 'index'])->name('index');
-    });
-```
+5) **Liberar o módulo no(s) portal(is)**
+   - `amazing/config/portals.php`
+   - Adicione o módulo na lista do portal **ou** use `'*'` para acesso total (quando fizer sentido).
 
-### 15.2 Importar o módulo em `routes/groups/scoped_modules.php`
-- incluir `require` do arquivo do módulo
 
-### 15.3 Criar controller e view (UI-only)
-- Controller: `amazing/app/Http/Controllers/Relatorios/RelatoriosController.php`
-- View: `amazing/resources/views/modules/relatorios/index.blade.php`
+> Nota (módulo interno / dev-only): se for um módulo “de diagnóstico” (ex.: `diagnostics`), restrinja-o ao portal `amazing` e coloque uma feature flag para poder desligar completamente (retornando 404 e removendo da sidebar).
 
-Lembrete do front:
-- a view deve `@extends('layouts.app')` e usar `@section('content')`
+6) **Rodar testes**
+   - `php artisan test`
+   - Se mexeu em Blade e houver cache estranho: `php artisan view:clear`
 
-### 15.4 Registrar no catálogo (`config/modules.php`)
-Adicionar:
-- `label`
-- `route` (`relatorios.index`)
-- `order`
-- `section` (opcional)
-- `icon` (opcional)
-- `permission` (futuro)
-
-### 15.5 Permitir no(s) portal(is) (`config/portals.php`)
-- adicionar `relatorios` no `modules` do portal desejado (ou garantir `'*'`)
-
-### 15.6 Checklist de validação
-- `php artisan route:list | grep relatorios` (ou equivalente)
-- Acessar: `http://amazing.test/s/default/relatorios`
-- Validar:
-  - aparece no menu do portal correto
-  - URL direta dá 403 quando módulo não está permitido
+### 15.2 Resultado esperado
+- O módulo aparece automaticamente na sidebar (por config).
+- URL direta do módulo:
+  - funciona quando o portal permite,
+  - retorna 403 quando o portal não permite (enforced pelo middleware).
 
 ---
 
 ## 16) Fase 2 (contratos sem implementar)
-- Autenticação real
-- RBAC por scope (loja/franqueado/central)
-- Hierarquia viva (Org Units)
-- Auditoria de mudanças de acesso
-- Filas (workers) e processamento assíncrono pesado
-- Integrações (serviços externos, bancos, storage de anexos)
+A Fase 1 é UI-only. A Fase 2 introduz “sistema de verdade” (auth, RBAC, DB, integrações) **sem quebrar os contratos de navegação e governança**.
+
+### 16.1 Auth e RBAC
+- Middleware de autenticação (`auth`) na árvore `/s/{scope}`.
+- Permissão fina por módulo e por ação:
+  - `modules.php` já prevê `permission` (futuro).
+  - Sidebar filtra por `can(...)` além do filtro por portal.
+  - Rotas/controllers aplicam `can(...)`/policies/gates.
+
+### 16.2 Scope real (multi-tenant / contexto)
+- `scope` passa a representar entidade real (loja/franqueado/regional).
+- `ScopeContext` deve:
+  - validar existência (DB),
+  - carregar metadados (nome, tipo, hierarquia),
+  - controlar a troca de escopo (quando aplicável).
+
+### 16.3 Dados e integração sem “vazar” para UI
+- Controllers deixam de gerar dados fake e passam a consumir:
+  - services (domínio),
+  - repositórios (persistência),
+  - integrações (APIs internas/externas),
+  mantendo views “burras” (apenas render).
+
+### 16.4 Observabilidade e auditoria
+- Logs estruturados por `portal` + `scope`.
+- Eventos/auditoria para ações relevantes (quando existir regra de negócio).
 
 ---
 
 ## 17) ADRs (referência)
-Os ADRs vivem em `docs/adr/` e registram as decisões principais:
+As decisões “de verdade” devem morar em **ADRs**, não espalhadas em comentários ou commits.
 
-- ADR 0001 — Módulos escopados em `/s/{scope}`
-- ADR 0002 — Portal (Group) controla macro-acesso a módulos
-- ADR 0003 — Sidebar derivada de config (sem hardcode)
-- ADR 0004 — Front-end via Vite + Tailwind v4 (layout único + partials)
-- (Recomendado criar) ADR 0005 — Layout Chrome + Surface (HubSpot-like) + tokens em `shell.css` + tema `#48186e`
+### 17.1 Local e convenção
+- Pasta: `docs/adr/`
+- Nome sugerido: `ADR0006-titulo-curto.md` (ou `ADR-0006-titulo-curto.md`, desde que consistente)
+- Este arquivo (`docs/arquitetura.md`) é o **mapa geral**; os ADRs são a **fonte de decisão**.
+
+### 17.2 Template
+Use o template padrão do time:
+
+- Status: `Proposto | Aceito | Rejeitado | Substituído`
+- Contexto → Decisão → Consequências → Referências
+
+### 17.3 Relação com este documento
+- Se uma seção aqui ficar “opinativa”, transforme em ADR e coloque um link em **Referências**.
+- Quando uma decisão mudar, **não reescreva história**:
+  - Crie um novo ADR “Substitui ADRXXXX” e atualize os links.
+
+---
+
+*Fim do documento.*

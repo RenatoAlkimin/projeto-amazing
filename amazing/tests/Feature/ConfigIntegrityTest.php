@@ -9,33 +9,59 @@ class ConfigIntegrityTest extends TestCase
 {
     public function test_portals_reference_existing_modules(): void
     {
-        $modules = array_keys(config('modules', []));
-        $portals = config('portals', []);
+        $portals = (array) config('portals', []);
+        $catalog = array_keys((array) config('modules', []));
 
-        foreach ($portals as $portalKey => $portal) {
-            $allowed = $portal['modules'] ?? [];
-            $this->assertIsArray($allowed, "portals.$portalKey.modules deve ser array");
+        $this->assertNotEmpty($portals, 'Config de portais está vazia (config/portals.php).');
+        $this->assertNotEmpty($catalog, 'Config de módulos está vazia (config/modules.php).');
 
-            foreach ($allowed as $m) {
-                if ($m === '*') continue;
+        foreach ($portals as $portalId => $portalConfig) {
+            $modules = (array) ($portalConfig['modules'] ?? []);
 
+            // Wildcard: portal pode acessar todos os módulos do catálogo
+            if (in_array('*', $modules, true)) {
+                continue;
+            }
+
+            foreach ($modules as $module) {
                 $this->assertContains(
-                    $m,
-                    $modules,
-                    "Portal '$portalKey' referencia modulo '$m' que não existe em config/modules.php"
+                    $module,
+                    $catalog,
+                    "Portal '{$portalId}' referencia módulo inexistente: '{$module}'."
                 );
             }
         }
     }
 
-    public function test_modules_have_routes_registered(): void
+    public function test_each_configured_module_has_route_and_route_is_registered(): void
     {
-        $modules = config('modules', []);
+        $modules = (array) config('modules', []);
+        $this->assertNotEmpty($modules, 'Config de módulos está vazia (config/modules.php).');
 
-        foreach ($modules as $key => $mod) {
-            $route = $mod['route'] ?? null;
-            $this->assertIsString($route, "modules.$key.route deve existir e ser string");
-            $this->assertTrue(Route::has($route), "Rota '$route' do módulo '$key' não está registrada");
+        foreach ($modules as $key => $moduleConfig) {
+            $routeName = (string) ($moduleConfig['route'] ?? '');
+
+            $this->assertNotSame('', $routeName, "Módulo '{$key}' não define a key 'route'.");
+
+            $this->assertTrue(
+                Route::has($routeName),
+                "Módulo '{$key}' aponta para rota '{$routeName}', mas ela não está registrada."
+            );
+        }
+    }
+
+    public function test_each_configured_module_has_routes_file(): void
+    {
+        $modules = array_keys((array) config('modules', []));
+        $this->assertNotEmpty($modules, 'Config de módulos está vazia (config/modules.php).');
+
+        foreach ($modules as $module) {
+            $path = base_path("routes/modules/{$module}.php");
+
+            $this->assertFileExists(
+                $path,
+                "Módulo '{$module}' não tem arquivo de rotas: {$path}"
+            );
         }
     }
 }

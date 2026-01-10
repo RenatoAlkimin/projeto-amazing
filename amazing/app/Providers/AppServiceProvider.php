@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\Access\TenantModules; // <-- add
 use App\Support\Context\PortalContext;
 use App\Support\Context\ScopeContext;
 use App\Support\Navigation\SidebarBuilder;
@@ -24,11 +25,15 @@ class AppServiceProvider extends ServiceProvider
             return new ScopeContext($request);
         });
 
+        // TenantModules (pode ser scoped ou singleton; scoped é mais consistente com teu padrão)
+        $this->app->scoped(TenantModules::class, fn () => new TenantModules());
+
         // Builder do sidebar
         $this->app->bind(SidebarBuilder::class, function (Application $app) {
             return new SidebarBuilder(
                 $app->make(PortalContext::class),
                 $app->make(ScopeContext::class),
+                $app->make(TenantModules::class), // <-- add
                 $app->make(Request::class),
             );
         });
@@ -36,7 +41,6 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Sempre que renderizar o partial do sidebar, injeta os dados
         View::composer('partials.sidebar', SidebarComposer::class);
     }
 }

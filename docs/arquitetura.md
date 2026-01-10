@@ -4,7 +4,7 @@
 > Objetivo: manter **navegação, UI e governança** consistentes enquanto o sistema evolui para a Fase 2 (auth/RBAC/DB/integrações).
 
 **Arquivo canônico:** `docs/arquitetura.md`  
-**Última atualização:** 08/01/2026  
+**Última atualização:** 10/01/2026  
 **Status:** UI-only (Fase 1) • **Fonte de verdade:** este arquivo + `docs/adr/`  
 **Escopo:** organização de rotas, portais, módulos, sidebar, front-end e convenções (sem regra de negócio).
 
@@ -14,10 +14,10 @@
 1. Princípios (Fase 1 — UI-only)
 2. Stack
 3. Estrutura do repositório
-4. Conceitos (Portal, Módulo, Scope)
+4. Conceitos (Portal, Módulo, Scope, Tenant)
 5. Rotas e organização
 6. Convenções de nomes (rotas)
-7. Governança de acesso (Portal → Módulos) — macro
+7. Governança de acesso (Portal + Tenant/Scope → Módulos) — macro + venda por módulos
 8. Contexto unificado (Portal e Scope)
 9. Sidebar governada por config (sem hardcode)
 10. Controllers e Views
@@ -40,8 +40,8 @@
 
 **Invariantes (não quebrar):**
 - Tudo “operacional” roda em `/s/{scope}`.
-- A sidebar reflete exatamente o que o portal pode acessar.
-- Acesso por URL direta é bloqueado quando o portal não permite.
+- A sidebar reflete exatamente o que o **portal + tenant (scope)** podem acessar (mesma regra do middleware).
+- Acesso por URL direta é bloqueado quando o **portal não permite** ou quando o **tenant (scope) não contratou** o módulo.
 
 ---
 
@@ -92,6 +92,25 @@ As rotas dos módulos são escopadas por `{scope}`:
 
 No UI-only, `scope` é um identificador (ex.: `default`).  
 Na Fase 2 vira contexto real (loja, franqueado, regional etc).
+
+
+### 4.4 Tenant (Loja/Cliente) — entitlements por módulo (Fase 1)
+Além do “tipo de painel” (Portal), o produto pode ser vendido **por módulos** para cada cliente/loja.
+
+No UI-only (Fase 1), isso é representado por **entitlements por `scope`**:
+- um `scope` (ex.: `loja_001`) tem uma lista de módulos **contratados/ativos**;
+- o acesso final a um módulo é a **interseção**:
+  - `módulos permitidos pelo portal` ∩ `módulos contratados pelo tenant (scope)`
+
+**Fonte de verdade (Fase 1):**
+- `amazing/config/tenants.php`
+
+**Service (fonte única para menu + middleware):**
+- `amazing/app/Support/Access/TenantModules.php`
+
+> Na Fase 2, esses entitlements passam a vir do banco/billing, mantendo o mesmo “contrato” de checagem.
+
+
 
 ---
 
@@ -150,7 +169,7 @@ amazing/routes/
 
 ---
 
-## 7) Governança de acesso (Portal → Módulos) — macro
+## 7) Governança de acesso (Portal + Tenant/Scope → Módulos) — macro + venda por módulos
 
 ### 7.1 Fonte de verdade
 - `amazing/config/portals.php`
@@ -165,7 +184,32 @@ amazing/routes/
 
 > Regra de ouro: **a mesma lógica de allowlist/wildcard deve ser usada na sidebar e no middleware**.
 
-### 7.3 Módulos internos (dev-only): `diagnostics`
+### 7.3 Governança por tenant (scope) — venda por módulos (Fase 1)
+Além do controle por portal, o sistema suporta (no UI-only) limitar módulos **por loja/cliente** usando o `scope` como identificador.
+
+**Regras (Fase 1):**
+- Cada `scope` tem uma lista de módulos **contratados/ativos**.
+- O acesso final é sempre:
+  - `permitidos pelo portal` ∩ `contratados pelo tenant (scope)`
+- `'*'` (wildcard) significa “todos os módulos do catálogo”, mas **ainda passa pelo filtro do portal**.
+- Deve existir um `scope` **default** (fallback) com módulos mínimos para evitar “vazamento” de acesso por engano.
+
+**Fonte de verdade (Fase 1):**
+- `amazing/config/tenants.php`
+
+**Service (fonte única para menu + middleware):**
+- `amazing/app/Support/Access/TenantModules.php`
+
+**Enforcement (segurança):**
+- O middleware `module_enabled:<modulo>` também valida:
+  - portal permite o módulo
+  - tenant (scope) contratou o módulo
+- URL direta deve responder **403** quando o módulo não está contratado para o `scope`.
+
+> Na Fase 2, esses entitlements passam a ser persistidos (DB/billing), mantendo a mesma interface de checagem.
+
+
+### 7.4 Módulos internos (dev-only): `diagnostics`
 Alguns módulos existem apenas para **verificação do protótipo** e não fazem parte do produto final.
 
 Padrão recomendado:
@@ -206,14 +250,18 @@ Em produção, isso deve ficar desabilitado.
 
 ## 9) Sidebar governada por config (sem hardcode)
 A sidebar é renderizada a partir de:
-- `amazing/config/portals.php` (módulos permitidos)
-- `amazing/config/modules.php` (catálogo)
+- `amazing/config/portals.php` (módulos permitidos no portal)
+- `amazing/config/tenants.php` (módulos contratados/ativos no tenant via `scope`)
+- `amazing/config/modules.php` (catálogo + metadados)
+
+Regra: itens visíveis = **portalAllowed ∩ tenantAllowed** (mesma regra do middleware).
 
 Builder:
 - `amazing/app/Support/Navigation/SidebarBuilder.php`
   - ordena por `section` + `order`
   - gera URL via `route(<rota>, ['scope' => <scope>])`
   - marca ativo com `request()->routeIs('<modulo>.*')`
+  - filtra módulos não contratados pelo tenant (scope) via `TenantModules`
   - filtra módulos desabilitados por feature flag (ex.: `diagnostics`)
   - (futuro) filtra também por permissão fina (`can(...)`)
 
@@ -221,7 +269,7 @@ Composer:
 - `amazing/app/View/Composers/SidebarComposer.php`
 
 Registro (View Composer):
-- `amazing/app/Providers/AppServiceProvider.php`
+- `amazing/app/Providers/AppServiceProvider.php` (bind do `TenantModules` + builder)
   - `View::composer('partials.sidebar', SidebarComposer::class);`
 
 View:
@@ -532,6 +580,7 @@ Esse teste garante que a “arquitetura por configuração” não ficou inconsi
 
 Coberturas típicas:
 - Portais referenciam apenas módulos existentes (ex.: `config/portals.php` → `modules`).
+- Tenants/Scopes (Fase 1) referenciam apenas módulos existentes (ex.: `config/tenants.php` → `modules`).
 - Cada módulo configurado tem **rota base** e a rota está registrada.
 - Cada módulo configurado possui **arquivo de rotas** — evita “módulo aparece no menu mas não tem rotas”.
 
@@ -558,10 +607,11 @@ Erros do tipo **“Vite manifest not found at: public/build/manifest.json”** a
 
 > Regra: **CI deve usar o padrão recomendado**. A alternativa existe só para reduzir fricção local quando Node não está disponível.
 
-### 14.5 `Tests\Feature\PortalModuleAccessTest` (governança por portal + Diagnostics)
+### 14.5 `Tests\Feature\PortalModuleAccessTest` (governança por portal/tenant + Diagnostics)
 Esse teste é um “smoke test” barato para garantir que **portal → módulos → sidebar** não divergiram.
 
 Ele valida:
+- **Tenant/Scope (Fase 1)**: um módulo permitido no portal deve retornar `403` quando **não estiver contratado** no `scope` (enforced no mesmo middleware).
 - **Matriz de acesso por portal**: para cada portal, cada módulo configurado deve responder:
   - `200` quando o portal permite (allowlist ou `'*'`)
   - `403` quando o portal não permite (enforced pelo middleware `module_enabled:<modulo>`)
@@ -631,7 +681,14 @@ A Fase 1 é UI-only. A Fase 2 introduz “sistema de verdade” (auth, RBAC, DB,
   - Sidebar filtra por `can(...)` além do filtro por portal.
   - Rotas/controllers aplicam `can(...)`/policies/gates.
 
+### 16.2 Entitlements (assinaturas) por tenant
+- Entitlements (módulos contratados) passam de `config/tenants.php` para persistência (DB) e/ou billing.
+- Manter o contrato de checagem: `portalAllowed ∩ tenantAllowed`.
+
 ### 16.2 Scope real (multi-tenant / contexto)
+
+- Entitlements (módulos contratados) passam de `config/tenants.php` para persistência (DB) e/ou billing.
+- Manter o contrato de checagem: `portalAllowed ∩ tenantAllowed`.
 - `scope` passa a representar entidade real (loja/franqueado/regional).
 - `ScopeContext` deve:
   - validar existência (DB),

@@ -1,0 +1,72 @@
+# ADR 0008 — Entitlements de módulos por Tenant (Scope) no UI-only
+
+## Status
+Aceito
+
+## Contexto
+O produto será vendido para múltiplas lojas (multi-tenant) e a cobrança/contratação será feita **por módulo**.  
+Já existe governança de acesso por **Portal** (macro: `amazing`, `loja`, `franqueado`, etc.) e enforcement via middleware `module_enabled:<module>`, além da sidebar ser montada por config.
+
+Precisamos habilitar o cenário:
+- cada loja/cliente (tenant) escolhe quais módulos contratar;
+- **uma mesma instância** do sistema atende múltiplos tenants;
+- no **UI-only (Fase 1)** ainda não teremos DB/billing, mas precisamos validar arquitetura e UX;
+- a sidebar e o acesso por URL direta devem seguir **a mesma regra** (sem divergência).
+
+Restrições:
+- Fase 1: sem persistência (sem banco) → usar config como fonte de verdade;
+- evitar “vazamento” de acesso (default permissivo demais);
+- manter caminho claro para migrar para DB/billing na Fase 2.
+
+## Decisão
+Adicionar uma segunda camada de governança: **Entitlements por tenant**, usando o `scope` como identificador do tenant.
+
+Acesso final a um módulo passa a ser:
+- `portalAllowed ∩ tenantAllowed` (e, no futuro, também ∩ `userPermissions`)
+
+Implementação (Fase 1 / UI-only):
+1) **Fonte de verdade** por tenant:
+- `amazing/config/tenants.php`
+  - define módulos contratados por `scope` (ex.: `loja_001`)
+  - suporta wildcard `'*'`
+  - define um `default` com módulos mínimos (fallback seguro)
+
+2) **Service único** para evitar duplicação de regra:
+- `amazing/app/Support/Access/TenantModules.php`
+  - resolve módulos contratados por `scope`
+  - aplica wildcard `'*'`
+  - aplica fallback no `default_scope` quando `scope` não estiver explicitamente configurado
+
+3) **Enforcement (segurança)**
+- middleware `module_enabled:<module>` (classe `EnsureModuleEnabled`) passa a validar:
+  - módulo existe no catálogo `config/modules.php`
+  - portal atual permite (`PortalContext`)
+  - tenant/scope contratou (`TenantModules`)
+
+4) **Sidebar (UX)**
+- `SidebarBuilder` passa a montar itens visíveis com:
+  - `allowed = portalAllowed ∩ tenantAllowed`
+  - garantindo que a UI reflete exatamente o que a rota permitirá.
+
+## Consequências
+✅ Benefícios
+- Permite “venda por módulos” por loja/cliente sem reestruturar o roteamento existente.
+- Regra única e consistente (menu e middleware usam a mesma fonte/contrato).
+- Segurança por padrão: URL direta não bypassa o menu.
+- Migração clara para Fase 2: trocar a fonte (`config/tenants.php`) por DB/billing mantendo o contrato do `TenantModules`.
+
+⚠️ Custos / Riscos / Trade-offs
+- Operação no UI-only exige editar config e redeploy para mudar módulos por tenant.
+- Necessário manter `default` **restritivo**, senão há risco de liberar módulo por engano em scopes não mapeados.
+- Ainda **não** cobre RBAC por usuário/colaborador (isso será ADR próprio na Fase 2/3).
+- Decisão de produto para bloqueio: hoje é `403`; futuro pode ser “tela de upsell/contratação”.
+
+## Referências
+- `amazing/config/portals.php` (módulos por portal)
+- `amazing/config/modules.php` (catálogo de módulos)
+- `amazing/config/tenants.php` (entitlements por tenant/scope — Fase 1)
+- `amazing/app/Support/Access/TenantModules.php`
+- `amazing/app/Support/Context/ScopeContext.php`
+- `amazing/app/Support/Context/PortalContext.php`
+- `amazing/app/Http/Middleware/EnsureModuleEnabled.php`
+- `amazing/app/Support/Navigation/SidebarBuilder.php`

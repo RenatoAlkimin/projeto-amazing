@@ -2,6 +2,7 @@
 
 namespace App\Support\Navigation;
 
+use App\Support\Access\TenantModules;
 use App\Support\Context\PortalContext;
 use App\Support\Context\ScopeContext;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ class SidebarBuilder
     public function __construct(
         private readonly PortalContext $portal,
         private readonly ScopeContext $scope,
+        private readonly TenantModules $tenantModules,
         private readonly Request $request,
     ) {}
 
@@ -20,8 +22,13 @@ class SidebarBuilder
     public function build(): array
     {
         $catalog = (array) config('modules', []);
-        $allowed = $this->portal->allowedModules();
         $scope = $this->scope->current();
+
+        $portalAllowed = $this->portal->allowedModules();
+        $tenantAllowed = $this->tenantModules->allowedModules($scope);
+
+        // Interseção: portal ∩ tenant
+        $allowed = array_values(array_intersect($portalAllowed, $tenantAllowed));
 
         $items = [];
 

@@ -28,6 +28,6 @@ return [
     'loja' => [
         'label' => 'Loja',
         'home_route' => 'loja.home',
-        'modules' => ['hub', 'comercial', 'financeiro'],
+        'modules' => ['hub', 'comercial', 'financeiro', 'rh' ],
     ],
 ];

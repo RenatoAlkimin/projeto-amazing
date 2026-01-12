@@ -1,20 +1,20 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 /* Tailwind v4 sources */
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+@source "../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php";
+@source "../../storage/framework/views/*.php";
+@source "../**/*.blade.php";
+@source "../**/*.js";
 
 /* Seus estilos organizados */
-@import './theme.css';
-@import './base.css';
+@import "./theme.css";
+@import "./base.css";
 
-@import './layouts/sidebar.css';
-@import './layouts/header.css';
 @import "./layouts/shell.css";
+@import "./layouts/header.css";
+@import "./layouts/sidebar.css";
 
-@import './components/buttons.css';
-@import './components/cards.css';
-@import './components/forms.css';
-@import './components/badges.css';
+@import "./components/buttons.css";
+@import "./components/cards.css";
+@import "./components/forms.css";
+@import "./components/badges.css";

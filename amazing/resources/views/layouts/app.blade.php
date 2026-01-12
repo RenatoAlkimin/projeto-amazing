@@ -22,28 +22,6 @@
 
       {{-- Conteúdo (surface com curva) --}}
       <main class="app-surface">
-        {{-- Header interno do conteúdo --}}
-        <header class="app-contentHeader">
-          <div class="px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="text-lg font-semibold">
-                @yield('page_title', 'Painel')
-              </div>
-
-              @hasSection('page_subtitle')
-                <div class="text-sm text-gray-500">@yield('page_subtitle')</div>
-              @endif
-            </div>
-
-            <div class="text-xs text-gray-500">
-              @php
-                $scope = request()->route('scope') ?? config('amazing.default_scope', 'default');
-              @endphp
-              Scope: <span class="font-mono">{{ $scope }}</span>
-            </div>
-          </div>
-        </header>
-
         <div class="p-6">
           @yield('content')
         </div>

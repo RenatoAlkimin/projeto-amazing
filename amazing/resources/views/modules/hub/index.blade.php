@@ -8,52 +8,109 @@
 
 @section('content')
   <div class="space-y-6">
-    <section class="bg-white border rounded-xl p-5">
+    {{-- Page Header (reutilizável) --}}
+    @include('partials.page-header', ['showScope' => true])
+
+    {{-- Atalhos --}}
+    <section class="card p-6">
       <div class="flex items-start justify-between gap-4">
-        <div>
-          <h2 class="text-lg font-semibold">Atalhos</h2>
-          <p class="text-sm text-gray-600 mt-1">
-            Navegação rápida entre módulos (scope: <span class="font-mono">{{ $scope }}</span>).
+        <div class="min-w-0">
+          <h2 class="text-lg card-title">Atalhos</h2>
+          <p class="mt-1 text-sm card-subtitle">
+            Navegação rápida entre módulos.
           </p>
         </div>
-        <div class="text-xs text-gray-500">
-          Rota: <code class="px-2 py-1 bg-gray-100 rounded">hub.index</code>
+
+        <div class="shrink-0 text-xs card-subtitle">
+          <span class="mr-2">Rota:</span>
+          <code class="code-pill">hub.index</code>
         </div>
       </div>
 
-      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <a href="{{ route('comercial.index', ['scope' => $scope]) }}"
-           class="block p-4 border rounded-xl hover:bg-gray-50 transition">
-          <div class="font-semibold">Comercial</div>
-          <div class="text-sm text-gray-600 mt-1">Vendas, funil, oportunidades</div>
+           class="tile group block p-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <div class="font-semibold tracking-tight transition group-hover:text-[hsl(var(--primary))]">
+                Comercial
+              </div>
+              <div class="mt-1 text-sm card-subtitle">
+                Vendas, funil, oportunidades
+              </div>
+            </div>
+            <span class="tile-arrow" aria-hidden="true">↗</span>
+          </div>
         </a>
 
         <a href="{{ route('financeiro.index', ['scope' => $scope]) }}"
-           class="block p-4 border rounded-xl hover:bg-gray-50 transition">
-          <div class="font-semibold">Financeiro</div>
-          <div class="text-sm text-gray-600 mt-1">Caixa, contas, conciliação</div>
+           class="tile group block p-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <div class="font-semibold tracking-tight transition group-hover:text-[hsl(var(--primary))]">
+                Financeiro
+              </div>
+              <div class="mt-1 text-sm card-subtitle">
+                Caixa, contas, conciliação
+              </div>
+            </div>
+            <span class="tile-arrow" aria-hidden="true">↗</span>
+          </div>
         </a>
 
         <a href="{{ route('marketing.index', ['scope' => $scope]) }}"
-           class="block p-4 border rounded-xl hover:bg-gray-50 transition">
-          <div class="font-semibold">Marketing</div>
-          <div class="text-sm text-gray-600 mt-1">Campanhas, leads, canais</div>
+           class="tile group block p-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <div class="font-semibold tracking-tight transition group-hover:text-[hsl(var(--primary))]">
+                Marketing
+              </div>
+              <div class="mt-1 text-sm card-subtitle">
+                Campanhas, leads, canais
+              </div>
+            </div>
+            <span class="tile-arrow" aria-hidden="true">↗</span>
+          </div>
         </a>
 
         <a href="{{ route('rh.index', ['scope' => $scope]) }}"
-           class="block p-4 border rounded-xl hover:bg-gray-50 transition">
-          <div class="font-semibold">RH</div>
-          <div class="text-sm text-gray-600 mt-1">Pessoas, escala, performance</div>
+           class="tile group block p-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <div class="font-semibold tracking-tight transition group-hover:text-[hsl(var(--primary))]">
+                RH
+              </div>
+              <div class="mt-1 text-sm card-subtitle">
+                Pessoas, escala, performance
+              </div>
+            </div>
+            <span class="tile-arrow" aria-hidden="true">↗</span>
+          </div>
         </a>
       </div>
     </section>
 
-    <section class="bg-white border rounded-xl p-5">
-      <h2 class="text-lg font-semibold">Status do protótipo</h2>
-      <ul class="mt-3 space-y-2 text-sm text-gray-700 list-disc list-inside">
-        <li>Sidebar vem de <code class="px-1 bg-gray-100 rounded">config/modules.php</code> + <code class="px-1 bg-gray-100 rounded">config/portals.php</code></li>
-        <li>Rotas escopadas em <code class="px-1 bg-gray-100 rounded">/s/{scope}</code></li>
-        <li>Enforcement por middleware <code class="px-1 bg-gray-100 rounded">module_enabled:&lt;módulo&gt;</code></li>
+    {{-- Status --}}
+    <section class="card p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <h2 class="text-lg card-title">Status do protótipo</h2>
+          <p class="mt-1 text-sm card-subtitle">
+            Notas rápidas do que já está pronto e como está organizado.
+          </p>
+        </div>
+      </div>
+
+      <ul class="mt-4 space-y-2 text-sm text-gray-700 list-disc list-inside">
+        <li>
+          Sidebar vem de <code class="code-pill">config/modules.php</code> + <code class="code-pill">config/portals.php</code>
+        </li>
+        <li>
+          Rotas escopadas em <code class="code-pill">/s/{scope}</code>
+        </li>
+        <li>
+          Enforcement por middleware <code class="code-pill">module_enabled:&lt;módulo&gt;</code>
+        </li>
       </ul>
     </section>
   </div>

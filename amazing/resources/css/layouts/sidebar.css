@@ -2,7 +2,15 @@
   .app-sidebar {
     width: var(--hs-rail);
     background: var(--hs-chrome);
-    @apply shrink-0 h-full flex flex-col;
+
+    /* ✅ coluna fixa do layout */
+    @apply shrink-0 flex flex-col;
+
+    /* ✅ ocupa a altura do container (.app-body) */
+    height: 100%;
+
+    /* ✅ se tiver muitos itens, scroll fica aqui (não no body) */
+    overflow: auto;
   }
 
   .app-sidebar__nav {

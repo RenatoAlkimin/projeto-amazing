@@ -15,38 +15,43 @@
 
 @layer components {
   .app-shell {
-    background: var(--hs-chrome);
+    /* ✅ fallback garante o roxo mesmo se a var sumir */
+    background: var(--hs-chrome, #48186e);
+
+    /* ✅ trava o scroll no body */
+    height: 100dvh;
+    overflow: hidden;
   }
 
   .app-frame {
-    @apply min-h-dvh flex flex-col;
+    /* ✅ ocupa a viewport inteira */
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
   .app-body {
-    @apply flex flex-1;
-    min-height: calc(100dvh - var(--hs-topbar));
+    /* ✅ ocupa o espaço abaixo da topbar */
+    flex: 1;
+    display: flex;
+
+    /* essencial pra overflow funcionar em flex */
+    min-height: 0;
   }
 
-  /* HubSpot: sem gap externo. A curva aparece porque o main começa abaixo do topbar */
-  
-   .app-surface {
-    background: var(--hs-surface);
+  /* ✅ agora o scroll acontece aqui (no conteúdo), não no body */
+  .app-surface {
+    background: var(--hs-surface, #f5f8fa);
 
     /* ✅ curva só no canto esquerdo */
-    border-top-left-radius: var(--hs-radius);
+    border-top-left-radius: var(--hs-radius, 12px);
     border-top-right-radius: 0;
 
     box-shadow: 0 0 0 1px rgba(0,0,0,.05);
 
-    @apply flex-1 overflow-hidden;
-  }
-
-  /* Header interno do conteúdo gruda abaixo do topbar (sem “gap”) */
-  .app-contentHeader {
-    position: sticky;
-    top: var(--hs-topbar);
-    z-index: 20;
-    background: var(--hs-surface);
-    border-bottom: 1px solid rgba(0,0,0,.08);
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
   }
 }

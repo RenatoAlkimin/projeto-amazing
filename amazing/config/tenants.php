@@ -5,7 +5,7 @@ return [
     'default' => [
         'label' => 'Default',
         // Dica: deixe o default bem “mínimo” pra não vazar acesso por engano
-        'modules' => ['hub'],
+        'modules' => ['*'],
     ],
 
     // exemplos
@@ -16,6 +16,6 @@ return [
     
      'loja_002' => [
          'label' => 'Loja 002',
-         'modules' => ['*'], // tudo (mas sempre vai intersectar com o portal)
+         'modules' => ['rh'], // tudo (mas sempre vai intersectar com o portal)
      ],
 ];

@@ -94,3 +94,77 @@
     color: rgba(255,255,255,.9);
   }
 }
+
+@layer components {
+  .app-topbar__actions {
+    @apply pr-3 flex items-center gap-2;
+    color: rgba(255,255,255,.86);
+  }
+
+  .app-topbar__portal {
+    @apply text-xs mr-1;
+    opacity: .9;
+  }
+
+  .app-topbar__iconBtn {
+    height: 34px;
+    width: 34px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(0,0,0,.10);
+    @apply inline-flex items-center justify-center transition;
+    color: rgba(255,255,255,.92);
+  }
+
+  .app-topbar__iconBtn:hover {
+    background: rgba(255,255,255,.08);
+  }
+
+  .app-topbar__icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .app-topbar__store {
+    height: 34px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(0,0,0,.10);
+    @apply inline-flex items-center gap-2 pl-2 pr-2 transition;
+  }
+
+  .app-topbar__store:hover {
+    background: rgba(255,255,255,.08);
+  }
+
+  .app-topbar__storeSelect {
+    background: transparent;
+    border: none;
+    outline: none;
+
+    color: rgba(255,255,255,.92);
+    font-size: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+
+    padding-right: 2px;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .app-topbar__storeSelect:disabled {
+    opacity: .85;
+    cursor: default;
+  }
+
+  .app-topbar__chev {
+    width: 16px;
+    height: 16px;
+    opacity: .9;
+  }
+
+  /* se estiver disabled, some o chevron pra não prometer dropdown */
+  .app-topbar__store:has(.app-topbar__storeSelect:disabled) .app-topbar__chev {
+    opacity: 0.35;
+  }
+}

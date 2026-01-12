@@ -5,63 +5,90 @@
 
 @section('content')
   <div class="space-y-6">
-    <div class="rounded-xl border bg-white p-4">
-      <div class="text-sm text-gray-500">Contexto atual</div>
-      <div class="mt-2 flex flex-wrap gap-2 text-sm">
-        <span class="rounded bg-gray-100 px-2 py-1">Portal: <strong>{{ $portalLabel }}</strong> ({{ $portalId }})</span>
-        <span class="rounded bg-gray-100 px-2 py-1">Scope: <strong>{{ $scope }}</strong></span>
-        <span class="rounded bg-gray-100 px-2 py-1">Rota: <strong>{{ request()->route()?->getName() ?? 'n/a' }}</strong></span>
-      </div>
-    </div>
+    @include('partials.page-header')
 
-    <div class="rounded-xl border bg-white p-4">
-      <div class="text-sm text-gray-500">Vite</div>
-      <div class="mt-3 text-sm space-y-2">
-        <div>Manifest: <code>{{ $vite['manifest_path'] }}</code> — <strong>{{ $vite['manifest_exists'] ? 'OK' : 'MISSING' }}</strong></div>
-        <div>Hot file: <code>{{ $vite['hot_path'] }}</code> — <strong>{{ $vite['hot_exists'] ? 'ON' : 'OFF' }}</strong></div>
+    <section class="card p-6">
+      <h2 class="text-lg card-title">Contexto atual</h2>
+      <div class="mt-3 flex flex-wrap gap-2 text-sm">
+        <span class="code-pill">Portal: <strong>{{ $portalLabel }}</strong> ({{ $portalId }})</span>
+        <span class="code-pill">Scope: <strong>{{ $scope }}</strong></span>
+        <span class="code-pill">Rota: <strong>{{ request()->route()?->getName() ?? 'n/a' }}</strong></span>
       </div>
-    </div>
+    </section>
 
-    <div class="rounded-xl border bg-white p-4">
-      <div class="text-sm text-gray-500">Portais → módulos efetivos</div>
-      <div class="mt-3 grid gap-3 md:grid-cols-2">
+    <section class="card p-6">
+      <h2 class="text-lg card-title">Vite</h2>
+      <div class="mt-3 text-sm space-y-2 text-[hsl(var(--text))]">
+        <div>
+          Manifest: <code class="code-pill">{{ $vite['manifest_path'] }}</code>
+          <span class="ml-2 font-semibold">{{ $vite['manifest_exists'] ? 'OK' : 'MISSING' }}</span>
+        </div>
+        <div>
+          Hot file: <code class="code-pill">{{ $vite['hot_path'] }}</code>
+          <span class="ml-2 font-semibold">{{ $vite['hot_exists'] ? 'ON' : 'OFF' }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card p-6">
+      <h2 class="text-lg card-title">Portais → módulos efetivos</h2>
+
+      <div class="mt-4 grid gap-3 md:grid-cols-2">
         @foreach ($portalMatrix as $pid => $p)
-          <div class="rounded-lg border p-3">
-            <div class="font-medium">{{ $p['label'] }} <span class="text-xs text-gray-500">({{ $pid }})</span></div>
-            <div class="mt-2 text-xs text-gray-600 break-words">
+          <div class="tile block p-4">
+            <div class="font-semibold">
+              {{ $p['label'] }}
+              <span class="ml-1 text-xs card-subtitle">({{ $pid }})</span>
+            </div>
+            <div class="mt-2 text-xs text-[hsl(var(--muted))] break-words">
               {{ implode(', ', $p['modules']) }}
             </div>
           </div>
         @endforeach
       </div>
-    </div>
+    </section>
 
-    <div class="rounded-xl border bg-white p-4">
-      <div class="text-sm text-gray-500">Rotas por módulo</div>
+    <section class="card p-6">
+      <h2 class="text-lg card-title">Rotas por módulo</h2>
 
-      <div class="mt-3 overflow-x-auto">
+      <div class="mt-4 overflow-x-auto">
         <table class="min-w-full text-sm">
-          <thead class="text-left text-gray-500">
+          <thead class="text-left text-[hsl(var(--muted))]">
             <tr>
-              <th class="py-2 pr-4">Módulo</th>
-              <th class="py-2 pr-4">Rota</th>
-              <th class="py-2 pr-4">Registrada?</th>
-              <th class="py-2 pr-4">URL</th>
+              <th class="py-2 pr-4 font-medium">Módulo</th>
+              <th class="py-2 pr-4 font-medium">Rota</th>
+              <th class="py-2 pr-4 font-medium">Registrada?</th>
+              <th class="py-2 pr-4 font-medium">URL</th>
             </tr>
           </thead>
+
           <tbody class="align-top">
             @foreach ($moduleRoutes as $key => $m)
-              <tr class="border-t">
-                <td class="py-2 pr-4 font-medium">{{ $m['label'] }} <span class="text-xs text-gray-500">({{ $key }})</span></td>
-                <td class="py-2 pr-4 font-mono">{{ $m['route'] }}</td>
-                <td class="py-2 pr-4">
-                  {!! $m['route_exists'] ? '<span class="text-green-700">OK</span>' : '<span class="text-red-700">NO</span>' !!}
+              <tr class="border-t border-[hsl(var(--border))]">
+                <td class="py-2 pr-4 font-semibold">
+                  {{ $m['label'] }}
+                  <span class="ml-1 text-xs card-subtitle">({{ $key }})</span>
                 </td>
+
+                <td class="py-2 pr-4">
+                  <code class="code-pill">{{ $m['route'] }}</code>
+                </td>
+
+                <td class="py-2 pr-4">
+                  @if ($m['route_exists'])
+                    <span class="font-semibold text-[hsl(var(--success))]">OK</span>
+                  @else
+                    <span class="font-semibold text-[hsl(var(--danger))]">NO</span>
+                  @endif
+                </td>
+
                 <td class="py-2 pr-4">
                   @if ($m['url'])
-                    <a class="text-indigo-700 underline" href="{{ $m['url'] }}">{{ $m['url'] }}</a>
+                    <a class="underline text-[hsl(var(--primary))]" href="{{ $m['url'] }}">
+                      {{ $m['url'] }}
+                    </a>
                   @else
-                    <span class="text-gray-400">—</span>
+                    <span class="text-[hsl(var(--muted))]">—</span>
                   @endif
                 </td>
               </tr>
@@ -69,7 +96,6 @@
           </tbody>
         </table>
       </div>
-    </div>
-
+    </section>
   </div>
 @endsection

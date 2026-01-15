@@ -24,33 +24,48 @@ class SidebarBuilder
         $catalog = (array) config('modules', []);
         $scope = $this->scope->current();
 
-        $portalAllowed = $this->portal->allowedModules();
-        $tenantAllowed = $this->tenantModules->allowedModules($scope);
+        $portalId = $this->portal->get();
 
-        // Interseção: portal ∩ tenant
-        $allowed = array_values(array_intersect($portalAllowed, $tenantAllowed));
+        $portalAllowed = $this->portal->allowedModules();
+
+        // ✅ Superadmin (por enquanto): painel "amazing" ignora entitlements do tenant (scope)
+        if ($portalId === 'amazing') {
+            $allowed = $portalAllowed;
+        } else {
+            $tenantAllowed = $this->tenantModules->allowedModules($scope);
+
+            // Interseção: portal ∩ tenant
+            $allowed = array_values(array_intersect($portalAllowed, $tenantAllowed));
+        }
 
         $items = [];
 
         foreach ($allowed as $key) {
             $m = $catalog[$key] ?? null;
-            if (!is_array($m)) continue;
+            if (!is_array($m)) {
+                continue;
+            }
 
-            $routeName = (string)($m['route'] ?? '');
-            if ($routeName === '') continue;
+            $routeName = (string) ($m['route'] ?? '');
+            if ($routeName === '') {
+                continue;
+            }
 
             $items[] = [
                 'key' => $key,
-                'label' => (string)($m['label'] ?? $key),
+                'label' => (string) ($m['label'] ?? $key),
                 'icon' => $m['icon'] ?? null,
-                'section' => (string)($m['section'] ?? 'principal'),
-                'order' => (int)($m['order'] ?? 999),
+                'section' => (string) ($m['section'] ?? 'principal'),
+                'order' => (int) ($m['order'] ?? 999),
                 'url' => route($routeName, ['scope' => $scope]),
                 'active' => $this->request->routeIs($key . '.*') || $this->request->routeIs($routeName),
             ];
         }
 
-        usort($items, fn($a, $b) => [$a['section'], $a['order'], $a['label']] <=> [$b['section'], $b['order'], $b['label']]);
+        usort(
+            $items,
+            fn ($a, $b) => [$a['section'], $a['order'], $a['label']] <=> [$b['section'], $b['order'], $b['label']]
+        );
 
         $sections = [];
         foreach ($items as $it) {

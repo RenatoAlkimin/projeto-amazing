@@ -29,6 +29,11 @@ class EnsureModuleEnabled
             "Módulo '{$module}' não disponível para o portal '{$portal}'."
         );
 
+        // ✅ Superadmin (por enquanto): painel "amazing" ignora entitlements do tenant (scope)
+        if ($portal === 'amazing') {
+            return $next($request);
+        }
+
         abort_unless(
             $this->tenantModules->allows($scope, $module),
             403,

@@ -4,7 +4,7 @@
 > Objetivo: manter **navegação, UI e governança** consistentes enquanto o sistema evolui para a Fase 2 (auth/RBAC/DB/integrações).
 
 **Arquivo canônico:** `docs/arquitetura.md`  
-**Última atualização:** 10/01/2026  
+**Última atualização:** 16/01/2026  
 **Status:** UI-only (Fase 1) • **Fonte de verdade:** este arquivo + `docs/adr/`  
 **Escopo:** organização de rotas, portais, módulos, sidebar, front-end e convenções (sem regra de negócio).
 
@@ -40,8 +40,8 @@
 
 **Invariantes (não quebrar):**
 - Tudo “operacional” roda em `/s/{scope}`.
-- A sidebar reflete exatamente o que o **portal + tenant (scope)** podem acessar (mesma regra do middleware).
-- Acesso por URL direta é bloqueado quando o **portal não permite** ou quando o **tenant (scope) não contratou** o módulo.
+- A sidebar reflete exatamente o que o **portal + tenant (scope)** podem acessar (mesma regra do middleware). **Exceção:** o portal `amazing` é superadmin e ignora entitlements do tenant.
+- Acesso por URL direta é bloqueado quando o **portal não permite** ou quando o **tenant (scope) não contratou** o módulo (exceto no portal `amazing`, que ignora entitlements do tenant).
 
 ---
 
@@ -71,6 +71,11 @@ O portal define:
 - **macro-acesso** a módulos (ex.: loja não enxerga central)
 
 **Fonte de verdade:** `amazing/config/portals.php`
+
+O portal `amazing` é o **superadmin**:
+- Em `config/portals.php`, usa `modules: ['*']` para enxergar **todos** os módulos do catálogo.
+- No enforcement, **ignora entitlements do tenant (scope)** (bypass), mantendo apenas o check de “módulo existe” e “portal permite”.
+
 
 ### 4.2 Módulo (Module)
 **Módulo** é um domínio funcional:
@@ -180,7 +185,7 @@ amazing/routes/
 
 ### 7.2 Enforcement (segurança)
 - Middleware `module_enabled:<modulo>` em cada módulo
-- Bloqueia acesso por URL direta quando o portal não permite (resposta 403)
+- Bloqueia acesso por URL direta quando o portal não permite (resposta 403). Para portais não-superadmin, também valida tenant (scope).
 
 > Regra de ouro: **a mesma lógica de allowlist/wildcard deve ser usada na sidebar e no middleware**.
 
@@ -191,6 +196,7 @@ Além do controle por portal, o sistema suporta (no UI-only) limitar módulos **
 - Cada `scope` tem uma lista de módulos **contratados/ativos**.
 - O acesso final é sempre:
   - `permitidos pelo portal` ∩ `contratados pelo tenant (scope)`
+- **Exceção:** no portal `amazing` (superadmin), **não** há interseção com tenant — ele ignora entitlements do `scope`.
 - `'*'` (wildcard) significa “todos os módulos do catálogo”, mas **ainda passa pelo filtro do portal**.
 - Deve existir um `scope` **default** (fallback) com módulos mínimos para evitar “vazamento” de acesso por engano.
 
@@ -212,16 +218,15 @@ Além do controle por portal, o sistema suporta (no UI-only) limitar módulos **
 ### 7.4 Módulos internos (dev-only): `diagnostics`
 Alguns módulos existem apenas para **verificação do protótipo** e não fazem parte do produto final.
 
-Padrão recomendado:
-- Módulo: `diagnostics` (`diagnostics.index` em `/s/{scope}/diagnostics`)
-- Visível/apenas permitido no portal **`amazing`** (painel dev)
-- **Feature flag** para habilitar/desabilitar:
-  - `amazing/config/amazing.php` → `enable_diagnostics`
-  - `.env` (local) → `AMAZING_ENABLE_DIAGNOSTICS=true`
-- Quando desabilitado, deve responder **404** e não aparecer na sidebar.
+Estado atual (Fase 1):
+- Módulo: `diagnostics` (`diagnostics.index` em `/s/{scope}/diagnostics`).
+- **Acesso:** governado por **portal** (e, quando aplicável, por tenant via `scope`).
+  - Em portais “normais” (ex.: `loja`), tende a responder **403** quando o portal não liberar o módulo.
+  - No portal `amazing` (superadmin), responde **200** (porque `amazing` ignora entitlements do tenant e usa `modules: ['*']`).
+- **Feature flag (`amazing.enable_diagnostics`)**: já existe para futuro uso, mas **ainda não está aplicada para “sumir do mapa”** (isto é, não desregistra rotas nem força 404).
 
-Isso mantém o “painel dev” profissional (observabilidade e sanity checks) sem vazar para outros portais.
-
+Futuro (quando quisermos profissionalizar isso):
+- Aplicar a flag para **não registrar as rotas** do módulo quando estiver desabilitado (resultado: **404 real** e item não aparece na sidebar).
 
 ---
 
@@ -242,7 +247,7 @@ Para evitar divergência de regras (e bugs chatos), o sistema usa **classes de c
   - `amazing/config/amazing.php` → `allow_portal_query_switch`
   - `.env` local → `AMAZING_ALLOW_PORTAL_QUERY_SWITCH=true`
 - Exemplo:
-  - `/s/default?portal=franchising`
+  - `/s/default/?portal=franchising`
 
 Em produção, isso deve ficar desabilitado.
 
@@ -262,8 +267,8 @@ Builder:
   - gera URL via `route(<rota>, ['scope' => <scope>])`
   - marca ativo com `request()->routeIs('<modulo>.*')`
   - filtra módulos não contratados pelo tenant (scope) via `TenantModules`
-  - filtra módulos desabilitados por feature flag (ex.: `diagnostics`)
-  - (futuro) filtra também por permissão fina (`can(...)`)
+  - (futuro) filtrar módulos desabilitados por feature flag (`enabled`)
+  - (futuro) filtrar também por permissão fina (`can(...)`)
 
 Composer:
 - `amazing/app/View/Composers/SidebarComposer.php`
@@ -615,12 +620,14 @@ Ele valida:
 - **Matriz de acesso por portal**: para cada portal, cada módulo configurado deve responder:
   - `200` quando o portal permite (allowlist ou `'*'`)
   - `403` quando o portal não permite (enforced pelo middleware `module_enabled:<modulo>`)
-- **Diagnostics desabilitado = 404**: quando `amazing.enable_diagnostics=false`, a rota `diagnostics.index` deve retornar `404` (o módulo “some do mapa”).
-- **Sidebar consistente**: quando habilitado, o item “Diagnostics” aparece **somente** no portal `amazing`.
+- **Diagnostics (estado atual)**:
+  - retorna `403` fora do portal `amazing` quando não estiver liberado no portal.
+  - retorna `200` no portal `amazing` (superadmin).
+  - (futuro) se a flag `amazing.enable_diagnostics` passar a desregistrar rotas, aí sim esperamos `404` quando desabilitado.
+- **Sidebar consistente**: o item aparece apenas quando o módulo estiver permitido pelo portal (e pelo tenant, exceto no `amazing`).
 
 Regras práticas para manter estável:
 - O teste costuma habilitar temporariamente `amazing.allow_portal_query_switch=true` para conseguir alternar portal via `?portal=...` durante o request.
-- Para o “Diagnostics desabilitado = 404”, o gate deve acontecer **antes** do check de portal (ex.: middleware/route guard dedicado), para evitar `403` quando o módulo está desligado.
 
 ---
 

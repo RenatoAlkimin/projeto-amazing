@@ -1,13 +1,16 @@
 <?php
 
+use App\Support\Context\PortalContext;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('amazing')
     ->as('amazing.')
     ->middleware(['web'])
     ->group(function () {
-        Route::get('/', function () {
-            session(['portal' => 'amazing']);
-            return 'Portal: AMAZING (ok). Acesso total.';
+        Route::get('/', function (PortalContext $portal) {
+            $portal->set('amazing');
+
+            $scope = (string) config('amazing.default_scope', 'default');
+            return redirect()->route('hub.index', ['scope' => $scope]);
         })->name('home');
     });

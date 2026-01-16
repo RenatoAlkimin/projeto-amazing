@@ -4,7 +4,7 @@ return [
     'amazing' => [
         'label' => 'Painel Amazing',
         'home_route' => 'amazing.home',
-        'modules' => ['hub', 'comercial', 'financeiro', 'marketing', 'rh',  'diagnostics' ],
+        'modules' => ['*'], // ✅ superadmin: acesso a todos os módulos do catálogo
     ],
 
     'franchising' => [
@@ -28,6 +28,6 @@ return [
     'loja' => [
         'label' => 'Loja',
         'home_route' => 'loja.home',
-        'modules' => ['hub', 'comercial', 'financeiro', 'rh' ],
+        'modules' => ['hub', 'comercial', 'financeiro', 'rh'],
     ],
 ];

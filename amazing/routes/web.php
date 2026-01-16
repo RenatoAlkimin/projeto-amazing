@@ -3,9 +3,8 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    $scope = (string) config('amazing.default_scope', 'default');
-
-    return redirect()->route('hub.index', ['scope' => $scope]);
+    // ✅ fluxo normal passa por um portal (loja), amazing só pela rota dele
+    return redirect()->route('loja.home');
 });
 
 // Portais (rotas de entrada por painel)

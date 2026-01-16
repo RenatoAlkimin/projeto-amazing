@@ -26,13 +26,18 @@ class PortalContext
     {
         $portals = (array) config('portals', []);
 
-        // se você quiser controlar por config depois:
+        // controle por config
         $configured = (string) config('amazing.default_portal', '');
         if ($configured !== '' && array_key_exists($configured, $portals)) {
             return $configured;
         }
 
-        return array_key_first($portals) ?? 'amazing';
+        // ✅ fallback seguro: tenta "loja" antes do first
+        if (array_key_exists('loja', $portals)) {
+            return 'loja';
+        }
+
+        return array_key_first($portals) ?? 'loja';
     }
 
     public function set(string $portalId): void
@@ -106,10 +111,6 @@ class PortalContext
         return array_values(array_unique($allowed));
     }
 
-    /**
-     * Verifica se um módulo está liberado para um portal específico.
-     * O middleware EnsureModuleEnabled chama isso.
-     */
     public function allows(string $module, ?string $portalId = null): bool
     {
         $portalId = $portalId ?: $this->currentId();

@@ -24,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'set_scope' => SetScope::class,
             'ensure_store_exists' => EnsureStoreExists::class,
             'ensure_scope_access' => EnsureScopeAccess::class,
+            'ensure_portal_access' => \App\Http\Middleware\EnsurePortalAccess::class,
+
 
         ]);
     })

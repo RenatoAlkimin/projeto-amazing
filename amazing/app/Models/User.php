@@ -52,4 +52,14 @@ class User extends Authenticatable
             ->withPivot(['role_id', 'status'])
             ->withTimestamps();
     }
+
+    public function internalRole()
+    {
+        return $this->belongsTo(\App\Models\Role::class, 'internal_role_id');
+    }
+
+    public function isSuperadmin(): bool
+    {
+        return (string) optional($this->internalRole)->key === 'superadmin';
+    }
 }

@@ -11,34 +11,44 @@ use Illuminate\Http\Request;
 class EnsureModuleEnabled
 {
     public function __construct(
-        private PortalContext $portal,
-        private ScopeContext $scopeCtx,
-        private TenantModules $tenantModules,
+        private readonly PortalContext $portal,
+        private readonly ScopeContext $scopeCtx,
+        private readonly TenantModules $tenantModules,
     ) {}
 
     public function handle(Request $request, Closure $next, string $module)
     {
-        abort_unless(array_key_exists($module, (array) config('modules', [])), 404, "Módulo desconhecido.");
+        $portalId = (string) $this->portal->get();
+        $scope = (string) $this->scopeCtx->current();
 
-        $portal = $this->portal->get();
-        $scope = $this->scopeCtx->current();
-
-        abort_unless(
-            $this->portal->allows($module, $portal),
-            403,
-            "Módulo '{$module}' não disponível para o portal '{$portal}'."
-        );
-
-        // ✅ Superadmin (por enquanto): painel "amazing" ignora entitlements do tenant (scope)
-        if ($portal === 'amazing') {
-            return $next($request);
+        // Feature flag: diagnostics pode ser desligado (vira 404 mesmo no Amazing)
+        if ($module === 'diagnostics' && ! (bool) config('amazing.enable_diagnostics', false)) {
+            abort(404);
         }
 
+        /**
+         * 1) Regra do PORTAL (amazing vs vaapty)
+         * - Vaapty só pode acessar os módulos listados em config/portals.php
+         * - Amazing normalmente tem '*' (catálogo inteiro)
+         */
         abort_unless(
-            $this->tenantModules->allows($scope, $module),
+            $this->portal->allows($module),
             403,
-            "Módulo '{$module}' não contratado para a loja '{$scope}'."
+            "Módulo '{$module}' não permitido no portal '{$portalId}'."
         );
+
+        /**
+         * 2) Regra do TENANT (módulos contratados por loja)
+         * - Amazing ignora contrato (superadmin / painel interno)
+         * - Vaapty respeita contrato do scope
+         */
+        if ($portalId !== 'amazing') {
+            abort_unless(
+                $this->tenantModules->allows($scope, $module),
+                403,
+                "Módulo '{$module}' não contratado para a loja '{$scope}'."
+            );
+        }
 
         return $next($request);
     }

@@ -12,4 +12,9 @@ class Role extends Model
         'scope_type',
         'level',
     ];
+
+    public function permissions()
+    {
+        return $this->belongsToMany(Permission::class, 'role_permissions')->withTimestamps();
+    }
 }

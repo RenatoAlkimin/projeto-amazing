@@ -17,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Contextos por request (safe pra Octane/long-running)
-        $this->app->scoped(PortalContext::class, fn () => new PortalContext());
+        $this->app->scoped(PortalContext::class, fn() => new PortalContext());
 
         $this->app->scoped(ScopeContext::class, function (Application $app) {
             /** @var Request $request */
@@ -26,14 +26,15 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // TenantModules (pode ser scoped ou singleton; scoped é mais consistente com teu padrão)
-        $this->app->scoped(TenantModules::class, fn () => new TenantModules());
+        $this->app->scoped(TenantModules::class, fn() => new TenantModules());
 
         // Builder do sidebar
         $this->app->bind(SidebarBuilder::class, function (Application $app) {
             return new SidebarBuilder(
                 $app->make(PortalContext::class),
                 $app->make(ScopeContext::class),
-                $app->make(TenantModules::class), // <-- add
+                $app->make(TenantModules::class),
+                $app->make(\App\Support\Access\Permissions::class),
                 $app->make(Request::class),
             );
         });

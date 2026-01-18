@@ -6,6 +6,7 @@ use App\Support\Access\TenantModules;
 use App\Support\Context\PortalContext;
 use App\Support\Context\ScopeContext;
 use Illuminate\Http\Request;
+use App\Support\Access\Permissions;
 
 class SidebarBuilder
 {
@@ -13,6 +14,7 @@ class SidebarBuilder
         private readonly PortalContext $portal,
         private readonly ScopeContext $scope,
         private readonly TenantModules $tenantModules,
+        private readonly Permissions $permissions,
         private readonly Request $request,
     ) {}
 

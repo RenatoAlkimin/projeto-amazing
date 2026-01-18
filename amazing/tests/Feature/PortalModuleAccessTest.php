@@ -26,21 +26,27 @@ class PortalModuleAccessTest extends TestCase
             'status' => 'active',
         ]);
 
-        // Role mínima pro membership (Etapa 4)
-        $admRole = Role::query()->create([
-            'key' => 'adm',
-            'name' => 'Admin',
-            'scope_type' => 'store',
-            'level' => 100,
-        ]);
+        // Role interno do painel Amazing
+        $superadminRole = Role::query()->firstOrCreate(
+            ['key' => 'superadmin'],
+            ['name' => 'Superadmin', 'scope_type' => 'internal', 'level' => 999]
+        );
+
+        // Role por loja (membership)
+        $admRole = Role::query()->firstOrCreate(
+            ['key' => 'adm'],
+            ['name' => 'Admin', 'scope_type' => 'store', 'level' => 100]
+        );
 
         $user = User::factory()->create([
             'username' => 'tester',
         ]);
 
-        // IMPORTANTÍSSIMO:
-        // Com ensure_scope_access ativo, VAAPTY só entra no /s/{scope}
-        // se tiver membership store_user.
+        // Agora que existe ensure_portal_access, o usuário do teste precisa ser superadmin
+        $user->internal_role_id = $superadminRole->id;
+        $user->save();
+
+        // Membership para passar no ensure_scope_access do VAAPTY
         $user->stores()->attach($defaultStore->id, [
             'role_id' => $admRole->id,
             'status' => 'active',
@@ -111,8 +117,6 @@ class PortalModuleAccessTest extends TestCase
         config()->set('amazing.allow_portal_query_switch', true);
         config()->set('amazing.enable_diagnostics', true);
 
-        // Sidebar depende de tenant também (exceto amazing),
-        // então garantimos default liberado aqui.
         config()->set('tenants.default.modules', ['*']);
 
         $this->get('/s/default?portal=amazing')->assertSee('Diagnostics');
@@ -162,8 +166,8 @@ class PortalModuleAccessTest extends TestCase
             break;
         }
 
-        $this->assertNotNull($moduleKey);
-        $this->assertNotNull($routeName);
+        $this->assertNotNull($moduleKey, 'Não foi possível encontrar um módulo candidato para o teste.');
+        $this->assertNotNull($routeName, 'Não foi possível encontrar uma rota para o módulo candidato.');
 
         $url = route($routeName, ['scope' => 'loja_002']);
 
@@ -214,7 +218,7 @@ class PortalModuleAccessTest extends TestCase
             break;
         }
 
-        $this->assertNotNull($label);
+        $this->assertNotNull($label, 'Não foi possível encontrar um módulo candidato para o teste de sidebar.');
 
         $this->get('/s/loja_002?portal=amazing')->assertSee($label);
         $this->get('/s/loja_002?portal=vaapty')->assertDontSee($label);

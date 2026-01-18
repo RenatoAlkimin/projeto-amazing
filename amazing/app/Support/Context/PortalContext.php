@@ -32,12 +32,12 @@ class PortalContext
             return $configured;
         }
 
-        // ✅ fallback seguro: tenta "loja" antes do first
-        if (array_key_exists('loja', $portals)) {
-            return 'loja';
+        // ✅ fallback seguro: tenta "vaapty" antes do first
+        if (array_key_exists('vaapty', $portals)) {
+            return 'vaapty';
         }
 
-        return array_key_first($portals) ?? 'loja';
+        return array_key_first($portals) ?? 'vaapty';
     }
 
     public function set(string $portalId): void

@@ -2,16 +2,66 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
+use App\Models\Store;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class PortalModuleAccessTest extends TestCase
 {
+    use RefreshDatabase;
+
+    private function bootTestContext(): void
+    {
+        $defaultStore = Store::query()->create([
+            'scope_slug' => 'default',
+            'name' => 'Default',
+            'status' => 'active',
+        ]);
+
+        $loja002 = Store::query()->create([
+            'scope_slug' => 'loja_002',
+            'name' => 'Loja 002',
+            'status' => 'active',
+        ]);
+
+        // Role mínima pro membership (Etapa 4)
+        $admRole = Role::query()->create([
+            'key' => 'adm',
+            'name' => 'Admin',
+            'scope_type' => 'store',
+            'level' => 100,
+        ]);
+
+        $user = User::factory()->create([
+            'username' => 'tester',
+        ]);
+
+        // IMPORTANTÍSSIMO:
+        // Com ensure_scope_access ativo, VAAPTY só entra no /s/{scope}
+        // se tiver membership store_user.
+        $user->stores()->attach($defaultStore->id, [
+            'role_id' => $admRole->id,
+            'status' => 'active',
+        ]);
+
+        $user->stores()->attach($loja002->id, [
+            'role_id' => $admRole->id,
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($user);
+    }
+
     public function test_each_portal_can_access_only_its_allowed_modules(): void
     {
+        $this->bootTestContext();
+
         config()->set('amazing.allow_portal_query_switch', true);
         config()->set('amazing.enable_diagnostics', true);
 
-        // Para esse teste aqui ser "só portal", garantimos que o tenant não bloqueie nada no default scope.
+        // Para esse teste ser "só portal", garantimos que o tenant não bloqueie nada no default scope.
         config()->set('tenants.default.modules', ['*']);
 
         $defaultScope = (string) config('amazing.default_scope', 'default');
@@ -35,17 +85,15 @@ class PortalModuleAccessTest extends TestCase
 
                 $isAllowed = $wildcard || in_array($moduleKey, $allowed, true);
 
-                if ($isAllowed) {
-                    $response->assertStatus(200);
-                } else {
-                    $response->assertStatus(403);
-                }
+                $isAllowed ? $response->assertStatus(200) : $response->assertStatus(403);
             }
         }
     }
 
     public function test_diagnostics_is_404_when_disabled(): void
     {
+        $this->bootTestContext();
+
         config()->set('amazing.allow_portal_query_switch', true);
         config()->set('amazing.enable_diagnostics', false);
 
@@ -58,21 +106,23 @@ class PortalModuleAccessTest extends TestCase
 
     public function test_sidebar_shows_diagnostics_only_on_amazing_portal(): void
     {
+        $this->bootTestContext();
+
         config()->set('amazing.allow_portal_query_switch', true);
         config()->set('amazing.enable_diagnostics', true);
 
-        // Sidebar depende de tenant também (exceto amazing), então garantimos default liberado aqui.
+        // Sidebar depende de tenant também (exceto amazing),
+        // então garantimos default liberado aqui.
         config()->set('tenants.default.modules', ['*']);
 
-        $this->get('/s/default?portal=amazing')
-            ->assertSee('Diagnostics');
-
-        $this->get('/s/default?portal=loja')
-            ->assertDontSee('Diagnostics');
+        $this->get('/s/default?portal=amazing')->assertSee('Diagnostics');
+        $this->get('/s/default?portal=vaapty')->assertDontSee('Diagnostics');
     }
 
     public function test_amazing_ignores_tenant_entitlements_on_route_access(): void
     {
+        $this->bootTestContext();
+
         config()->set('amazing.allow_portal_query_switch', true);
         config()->set('amazing.enable_diagnostics', true);
 
@@ -81,17 +131,13 @@ class PortalModuleAccessTest extends TestCase
 
         $modules = (array) config('modules', []);
         $amazingAllowed = (array) data_get(config('portals'), 'amazing.modules', []);
-        $franchisingAllowed = (array) data_get(config('portals'), 'franchising.modules', []);
+        $vaaptyAllowed  = (array) data_get(config('portals'), 'vaapty.modules', []);
 
-        // Escolhe um módulo com rota que:
-        // - exista no catálogo
-        // - esteja permitido em amazing e franchising
-        // - NÃO esteja no contrato de loja_002 (['rh'])
         $candidateKeys = array_keys($modules);
         $amazingSet = in_array('*', $amazingAllowed, true) ? $candidateKeys : $amazingAllowed;
-        $franchisingSet = in_array('*', $franchisingAllowed, true) ? $candidateKeys : $franchisingAllowed;
+        $vaaptySet  = in_array('*', $vaaptyAllowed, true) ? $candidateKeys : $vaaptyAllowed;
 
-        $intersection = array_values(array_intersect($amazingSet, $franchisingSet));
+        $intersection = array_values(array_intersect($amazingSet, $vaaptySet));
 
         $moduleKey = null;
         $routeName = null;
@@ -100,10 +146,12 @@ class PortalModuleAccessTest extends TestCase
             if ($key === 'rh') {
                 continue;
             }
+
             $conf = $modules[$key] ?? null;
             if (!is_array($conf)) {
                 continue;
             }
+
             $r = (string) ($conf['route'] ?? '');
             if ($r === '') {
                 continue;
@@ -114,20 +162,22 @@ class PortalModuleAccessTest extends TestCase
             break;
         }
 
-        $this->assertNotNull($moduleKey, 'Não foi possível encontrar um módulo candidato para o teste.');
-        $this->assertNotNull($routeName, 'Não foi possível encontrar uma rota para o módulo candidato.');
+        $this->assertNotNull($moduleKey);
+        $this->assertNotNull($routeName);
 
         $url = route($routeName, ['scope' => 'loja_002']);
 
         // amazing deve passar (bypass entitlements)
         $this->get($url . '?portal=amazing')->assertStatus(200);
 
-        // franchising deve ser bloqueado pelo tenant (entitlements)
-        $this->get($url . '?portal=franchising')->assertStatus(403);
+        // vaapty deve ser bloqueado pelo tenant (entitlements)
+        $this->get($url . '?portal=vaapty')->assertStatus(403);
     }
 
     public function test_amazing_sidebar_ignores_tenant_entitlements(): void
     {
+        $this->bootTestContext();
+
         config()->set('amazing.allow_portal_query_switch', true);
         config()->set('amazing.enable_diagnostics', true);
 
@@ -135,13 +185,13 @@ class PortalModuleAccessTest extends TestCase
 
         $modules = (array) config('modules', []);
         $amazingAllowed = (array) data_get(config('portals'), 'amazing.modules', []);
-        $franchisingAllowed = (array) data_get(config('portals'), 'franchising.modules', []);
+        $vaaptyAllowed  = (array) data_get(config('portals'), 'vaapty.modules', []);
 
         $candidateKeys = array_keys($modules);
         $amazingSet = in_array('*', $amazingAllowed, true) ? $candidateKeys : $amazingAllowed;
-        $franchisingSet = in_array('*', $franchisingAllowed, true) ? $candidateKeys : $franchisingAllowed;
+        $vaaptySet  = in_array('*', $vaaptyAllowed, true) ? $candidateKeys : $vaaptyAllowed;
 
-        $intersection = array_values(array_intersect($amazingSet, $franchisingSet));
+        $intersection = array_values(array_intersect($amazingSet, $vaaptySet));
 
         $label = null;
 
@@ -149,10 +199,12 @@ class PortalModuleAccessTest extends TestCase
             if ($key === 'rh') {
                 continue;
             }
+
             $conf = $modules[$key] ?? null;
             if (!is_array($conf)) {
                 continue;
             }
+
             $r = (string) ($conf['route'] ?? '');
             if ($r === '') {
                 continue;
@@ -162,14 +214,9 @@ class PortalModuleAccessTest extends TestCase
             break;
         }
 
-        $this->assertNotNull($label, 'Não foi possível encontrar um módulo candidato para o teste de sidebar.');
+        $this->assertNotNull($label);
 
-        // amazing deve mostrar o módulo (bypass entitlements)
-        $this->get('/s/loja_002?portal=amazing')
-            ->assertSee($label);
-
-        // franchising não deve mostrar (entitlements bloqueia)
-        $this->get('/s/loja_002?portal=franchising')
-            ->assertDontSee($label);
+        $this->get('/s/loja_002?portal=amazing')->assertSee($label);
+        $this->get('/s/loja_002?portal=vaapty')->assertDontSee($label);
     }
 }

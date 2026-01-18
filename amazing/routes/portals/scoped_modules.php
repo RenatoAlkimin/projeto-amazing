@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('s/{scope}')
-    ->middleware(['web', 'resolve_portal', 'set_scope']) // depois: auth
+    ->middleware(['web', 'auth', 'resolve_portal', 'set_scope', 'ensure_store_exists', 'ensure_scope_access'])
     ->group(function () {
         $modules = array_keys((array) config('modules', []));
 

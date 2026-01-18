@@ -5,9 +5,10 @@ return [
      * Portal padrão quando a sessão ainda não tem portal definido
      * (ex.: acesso direto em /s/{scope}/..., sessão nova, etc).
      *
-     * ✅ Importante: manter como 'loja' pra garantir que 'amazing' só entra via rota /amazing.
+     *  * ✅ Importante: manter como 'vaapty' pra garantir que 'amazing' só entra via rota /amazing.
+      
      */
-    'default_portal' => env('AMAZING_DEFAULT_PORTAL', 'loja'),
+    'default_portal' => env('AMAZING_DEFAULT_PORTAL', 'vaapty'),
 
     /**
      * Scope padrão caso não venha na rota.

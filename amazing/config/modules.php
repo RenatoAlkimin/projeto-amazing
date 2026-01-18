@@ -47,13 +47,23 @@ return [
     ],
 
     'diagnostics' => [
-         'label' => 'Diagnostics',
-         'route' => 'diagnostics.index',
-         'section' => 'Dev',
-         'order' => 999,
-         'icon' => 'wrench', // usa o que teu <x-icon> suportar
-         'permission' => 'diagnostics.view', // futuro (fase 2)
+        'label' => 'Diagnostics',
+        'route' => 'diagnostics.index',
+        'section' => 'Dev',
+        'order' => 999,
+        'icon' => 'wrench', // usa o que teu <x-icon> suportar
+        'permission' => 'diagnostics.view', // futuro (fase 2)
     ],
+
+    'controladoria' => [
+        'label' => 'Controladoria',
+        'route' => 'controladoria.index',
+        'permission' => null,
+        'icon' => 'users', // depois a gente melhora ícones se quiser
+        'order' => 900,
+        'section' => 'Admin',
+    ],
+
 
 
 ];

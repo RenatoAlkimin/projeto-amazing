@@ -7,27 +7,10 @@ return [
         'modules' => ['*'], // ✅ superadmin: acesso a todos os módulos do catálogo
     ],
 
-    'franchising' => [
-        'label' => 'Painel Franchising',
-        'home_route' => 'franchising.home',
+    'vaapty' => [
+        'label' => 'Painel Vaapty',
+        'home_route' => 'vaapty.home',
+        // 🔒 painel do produto: só módulos do produto (sem módulos internos de dev/controladoria)
         'modules' => ['hub', 'comercial', 'financeiro', 'marketing', 'rh'],
-    ],
-
-    'franqueado' => [
-        'label' => 'Franqueado',
-        'home_route' => 'franqueado.home',
-        'modules' => ['hub', 'comercial', 'financeiro'],
-    ],
-
-    'franqueado_central' => [
-        'label' => 'Central do Franqueado',
-        'home_route' => 'franqueado_central.home',
-        'modules' => ['hub', 'comercial', 'financeiro'],
-    ],
-
-    'loja' => [
-        'label' => 'Loja',
-        'home_route' => 'loja.home',
-        'modules' => ['hub', 'comercial', 'financeiro', 'rh'],
     ],
 ];

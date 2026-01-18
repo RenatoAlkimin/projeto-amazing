@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('amazing')
     ->as('amazing.')
-    ->middleware(['web'])
+    ->middleware(['web', 'auth'])
     ->group(function () {
         Route::get('/', function (PortalContext $portal) {
             $portal->set('amazing');
